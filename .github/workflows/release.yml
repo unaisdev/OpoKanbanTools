@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm compile
+
+      - name: Build zip
+        run: pnpm zip
+
+      - name: Resolve version & channel
+        id: meta
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+
+          if [[ "$VERSION" != "$PKG_VERSION" ]]; then
+            echo "::error::Tag version ($VERSION) does not match package.json ($PKG_VERSION)"
+            exit 1
+          fi
+
+          ZIP=".output/opo-kanban-tools-${VERSION}-chrome.zip"
+          if [[ ! -f "$ZIP" ]]; then
+            echo "::error::Expected zip not found: $ZIP"
+            ls -la .output || true
+            exit 1
+          fi
+
+          # Treat 0.x and tags containing beta/rc/alpha as prerelease
+          PRERELEASE=false
+          if [[ "$VERSION" == 0.* ]] || [[ "$TAG" =~ (beta|rc|alpha) ]]; then
+            PRERELEASE=true
+          fi
+
+          {
+            echo "version=$VERSION"
+            echo "zip=$ZIP"
+            echo "prerelease=$PRERELEASE"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: OpoKanbanTools ${{ steps.meta.outputs.version }}${{ steps.meta.outputs.prerelease == 'true' && ' (Beta)' || '' }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          generate_release_notes: true
+          files: ${{ steps.meta.outputs.zip }}
+          body: |
+            ## Install (Chrome / Chromium — Load unpacked)
+
+            1. Download **`opo-kanban-tools-${{ steps.meta.outputs.version }}-chrome.zip`** below.
+            2. Unzip it somewhere stable (do not delete that folder later).
+            3. Open `chrome://extensions`.
+            4. Enable **Developer mode**.
+            5. **Load unpacked** → select the unzipped folder (it contains `manifest.json`).
+            6. Open the extension **Options**, paste credentials, enable tools.
+
+            Source code for this tag is attached automatically by GitHub (`Source code (zip)`).
+
+            ## Update
+
+            Chrome does **not** auto-update extensions installed via *Load unpacked*.
+            When a newer release exists, Options shows an update banner (checks GitHub Releases).
+            Download the new zip, replace the folder contents (or load the new folder), then click **Reload** on `chrome://extensions`.
+
+            Silent CRX auto-update from Releases is only practical with enterprise policy / Linux self-hosting; this beta ships the zip + in-app update check.

@@ -10,6 +10,47 @@ Ships the plugin architecture, admin panel, an **Example Tool** stub, and the **
 - `chrome.storage.local` for settings and secrets
 - Background service worker as the only place that will call external APIs (future tools)
 
+## Install (beta from GitHub Releases)
+
+Shipped as an unpacked Chrome MV3 zip (not Chrome Web Store).
+
+1. Open the latest [Release](https://github.com/unaisdev/OpoKanbanTools/releases)
+2. Download `opo-kanban-tools-<version>-chrome.zip`
+3. Unzip to a stable folder (keep it; Chrome loads from that path)
+4. `chrome://extensions` → **Developer mode** → **Load unpacked** → select the unzipped folder
+5. Open **Options**, paste credentials, enable tools
+
+GitHub also attaches **Source code (zip/tar.gz)** on every release if you need the repo snapshot.
+
+### Publish a release
+
+1. Bump `version` in `package.json` (must match the tag without `v`)
+2. Commit, then tag and push:
+
+```bash
+git tag v0.0.1
+git push origin v0.0.1
+```
+
+3. `.github/workflows/release.yml` builds the zip, typechecks, and creates a GitHub Release  
+   (`0.x` tags are marked as **prerelease / beta** automatically)
+
+Local zip without publishing:
+
+```bash
+pnpm zip   # → .output/opo-kanban-tools-<version>-chrome.zip
+```
+
+### Updates from Releases
+
+| Approach | Status for this project |
+| --- | --- |
+| **In-app check** (Options banner) | ✅ Implemented — polls GitHub Releases API; if the repo is private, uses the stored GitHub token |
+| **Silent CRX auto-update** (`update_url` + signed `.crx`) | ⚠️ Possible but limited — Chrome on Windows/macOS blocks installing/updating non–Web Store CRXs for normal users; works mainly with **enterprise policy** or some Linux setups |
+| **Chrome Web Store** | Best real auto-update path later; not used for this private beta |
+
+Practical beta flow: Options shows **Update available** → open the release → download zip → replace folder / reload extension on `chrome://extensions`.
+
 ## Develop
 
 ```bash
@@ -28,6 +69,7 @@ pnpm dev
 ```bash
 pnpm build    # production build
 pnpm compile  # typecheck
+pnpm zip      # production zip for manual install / Releases
 ```
 
 ## Architecture

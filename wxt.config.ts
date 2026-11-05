@@ -5,12 +5,13 @@ export default defineConfig({
   manifest: {
     name: 'OpoKanbanTools',
     description:
-      'Connect KanbanFlow tasks with GitHub, Sentry and other tools via action bubbles.',
+      'Connect KanbanFlow tasks with GitHub, Sentry and other tools via action bubbles. (Beta)',
     permissions: ['storage', 'declarativeNetRequestWithHostAccess'],
     host_permissions: [
       'https://kanbanflow.com/*',
       'https://*.kanbanflow.com/*',
       'https://api.github.com/*',
+      'https://github.com/*',
       'https://sentry.io/*',
       'https://*.sentry.io/*',
     ],

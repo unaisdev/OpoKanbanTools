@@ -2,7 +2,7 @@
   "name": "opo-kanban-tools",
   "description": "Chrome extension that connects KanbanFlow with GitHub, Sentry and other tools",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -12,7 +12,8 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "release:zip": "pnpm zip"
   },
   "dependencies": {
     "react": "^19.2.4",

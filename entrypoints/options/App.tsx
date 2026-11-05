@@ -11,6 +11,7 @@ import { Section } from '@/src/ui/components/Section';
 import { StatusChip } from '@/src/ui/components/StatusChip';
 import { TokenField } from '@/src/ui/components/TokenField';
 import { ToolCard } from '@/src/ui/components/ToolCard';
+import { UpdateBanner } from '@/src/ui/components/UpdateBanner';
 
 const SECRET_KEYS = Object.keys(GLOBAL_SECRET_META) as GlobalSecretKey[];
 
@@ -50,7 +51,7 @@ export default function App() {
   return (
     <div className="okt-page">
       <header className="okt-hero">
-        <p className="okt-kicker">KanbanFlow extension</p>
+        <p className="okt-kicker">KanbanFlow extension · Beta</p>
         <h1 className="okt-brand">OpoKanbanTools</h1>
         <p className="okt-lede">
           Enable tools that appear as action bubbles beside an open task. Store
@@ -58,6 +59,8 @@ export default function App() {
           secrets to the page.
         </p>
       </header>
+
+      <UpdateBanner />
 
       <div className="okt-stack">
         <Section

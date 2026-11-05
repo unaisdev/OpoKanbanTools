@@ -5,10 +5,12 @@ import {
   type OktEvent,
   type OktResponse,
 } from '@/src/core/messaging';
+import { checkForUpdate } from '@/src/core/release';
 import type { PublicSettings } from '@/src/core/types';
 import {
   clearSecret,
   getPublicSettings,
+  getSecret,
   migrateOnInstall,
   setSecrets,
   setToolConfig,
@@ -87,6 +89,14 @@ export default defineBackground(() => {
 
     void (async () => {
       try {
+        if (message.type === 'CHECK_UPDATE') {
+          const token = await getSecret('github');
+          const data = await checkForUpdate(token);
+          const response: OktResponse = { ok: true, data };
+          sendResponse(response);
+          return;
+        }
+
         if (!isSettingsRequest(message)) {
           const data =
             message.type === 'SENTRY'

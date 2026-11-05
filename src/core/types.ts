@@ -105,7 +105,7 @@ export const GLOBAL_SECRET_META: Record<
 > = {
   github: {
     label: 'GitHub token',
-    hint: 'Fine-grained PAT para CI Build (actions:read + actions:write).',
+    hint: 'Fine-grained PAT para CI Build (actions:read + actions:write). Con acceso al repo también habilita el check de updates en Options.',
     placeholder: 'github_pat_…',
     howTo: {
       title: 'Cómo crear el token de GitHub',
