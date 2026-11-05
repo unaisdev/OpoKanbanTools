@@ -57,6 +57,42 @@
   flex-wrap: wrap;
 }
 
+.actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid var(--okt-line);
+  background: transparent;
+  color: var(--okt-ink);
+  cursor: pointer;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--okt-ink-muted);
+}
+
+.iconBtn[data-danger]:hover:not(:disabled) {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.35);
+  background: rgba(180, 35, 24, 0.06);
+}
+
+.iconBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .input {
   flex: 1 1 220px;
   min-width: 180px;

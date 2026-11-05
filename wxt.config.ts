@@ -10,8 +10,8 @@ export default defineConfig({
     host_permissions: [
       'https://kanbanflow.com/*',
       'https://*.kanbanflow.com/*',
+      'https://api.github.com/*',
       // Future tools (uncomment when implementing):
-      // 'https://api.github.com/*',
       // 'https://*.sentry.io/*',
     ],
     // No default_popup → toolbar click opens options via background onClicked.

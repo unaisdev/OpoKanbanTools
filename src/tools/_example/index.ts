@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import { registerTool } from '@/src/core/registry';
 import { ExampleModal } from './ExampleModal';
 
@@ -45,5 +46,5 @@ registerTool({
       defaultValue: true,
     },
   ],
-  renderModal: (props) => ExampleModal(props),
+  renderModal: (props) => createElement(ExampleModal, props),
 });

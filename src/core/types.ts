@@ -43,6 +43,8 @@ export type ToolModalProps = {
   task: TaskContext;
   config: Record<string, unknown>;
   onClose: () => void;
+  /** Which global secrets are configured (never the values). */
+  secretStatus?: Record<GlobalSecretKey, boolean>;
 };
 
 export type ToolDefinition = {
@@ -54,7 +56,7 @@ export type ToolDefinition = {
   defaultEnabled: boolean;
   settingsFields: SettingsField[];
   usesGlobalSecrets?: GlobalSecretKey[];
-  canShow?: (ctx: TaskContext) => boolean;
+  canShow?: (ctx: TaskContext, config: Record<string, unknown>) => boolean;
   renderModal: (props: ToolModalProps) => ReactNode;
 };
 

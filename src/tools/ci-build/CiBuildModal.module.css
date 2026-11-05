@@ -1,0 +1,269 @@
+.meta {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+}
+
+.meta strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.muted {
+  color: #59636e;
+  font-size: 12px;
+}
+
+.muted a {
+  color: #0969da;
+}
+
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.legend,
+.fieldLabel {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.option {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px 10px;
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+
+.optionSelected {
+  border-color: #0969da;
+  background: #ddf4ff;
+}
+
+.option input {
+  margin-top: 3px;
+}
+
+.branch {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.control {
+  display: block;
+  width: 100%;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #d1d9e0;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 13px;
+  line-height: normal;
+  background: #fff;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+/* Native <select> clips text with vertical padding on Chrome/macOS. */
+select.control {
+  appearance: auto;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.warn,
+.error,
+.ok {
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+
+.warn {
+  background: #fff8c5;
+  border: 1px solid #d4a72c66;
+}
+
+.error {
+  background: #ffebe9;
+  border: 1px solid #ff818266;
+}
+
+.ok {
+  background: #dafbe1;
+  border: 1px solid #4ac26b66;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  background: #f7f4ea;
+  padding: 10px 0 0;
+  margin-top: 8px;
+}
+
+.footerBack {
+  margin-right: auto;
+}
+
+.btn {
+  border: 1px solid #d1d9e0;
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.primary {
+  background: #1f883d;
+  border-color: #1f883d;
+  color: #fff;
+}
+
+.danger {
+  color: #d1242f;
+}
+
+.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.runCard {
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.runCardActive {
+  border-color: #54aeff;
+}
+
+.runHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.runWhen {
+  margin-left: auto;
+}
+
+.runActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.build {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.buildBtn {
+  margin-left: auto;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  margin: 14px 0 6px;
+  color: #59636e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+
+.badgeRun {
+  background: #ddf4ff;
+  color: #0969da;
+}
+
+.badgeOk {
+  background: #dafbe1;
+  color: #1a7f37;
+}
+
+.badgeErr {
+  background: #ffebe9;
+  color: #d1242f;
+}
+
+.badgeNeutral {
+  background: #eff2f5;
+  color: #59636e;
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #d1d9e0;
+  border-top-color: #0969da;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+
+.badge .spinner {
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.link {
+  color: #0969da;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+}

@@ -44,37 +44,95 @@ function textOf(el: Element | null): string {
   return el?.textContent?.trim() ?? '';
 }
 
+/** Track last clicked task card so we can resolve ambiguous open panels. */
+let lastClickedTaskId: string | null = null;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener(
+    'click',
+    (e) => {
+      const card = (e.target as Element | null)?.closest?.('.task[data-taskid]');
+      if (card instanceof HTMLElement && card.dataset.taskid) {
+        lastClickedTaskId = card.dataset.taskid;
+      }
+    },
+    true,
+  );
+}
+
+function resolveTaskId(root: Document | Element, title: string): string | null {
+  const attrId =
+    (root instanceof Element ? root.getAttribute('data-task-id') : null) ??
+    document.querySelector('[data-task-id]')?.getAttribute('data-task-id');
+  if (attrId) return attrId;
+
+  const matches = [...document.querySelectorAll('.task[data-taskid]')]
+    .filter(
+      (t) =>
+        (t.querySelector('.task-name')?.textContent || '').trim() === title,
+    )
+    .map((t) => (t as HTMLElement).dataset.taskid)
+    .filter(Boolean) as string[];
+
+  if (matches.length === 1) return matches[0]!;
+  if (matches.includes(lastClickedTaskId ?? '')) return lastClickedTaskId;
+
+  const searchRoot = root instanceof Element ? root : document;
+  const src =
+    searchRoot
+      .querySelector('img[src*="/taskattachmentimg/"]')
+      ?.getAttribute('src') ||
+    document
+      .querySelector('.taskDetails-wrapper img[src*="/taskattachmentimg/"]')
+      ?.getAttribute('src') ||
+    '';
+  return src.match(/taskattachmentimg\/[^/]+\/([A-Za-z0-9]+)-/)?.[1] || null;
+}
+
 /**
  * Best-effort scrape of the open KanbanFlow task panel.
- * Selectors are intentionally loose; refine when wiring real tools.
+ * Includes selectors from both the scaffold and the legacy KF CI Build extension.
  */
 export function scrapeTaskContext(root: Document | Element = document): TaskContext {
   const titleEl =
     root.querySelector(
-      '.taskDialog-header-title, #taskDialog [name="name"], textarea[name="name"], input[name="name"], [class*="task-details"] [class*="title"], .board-task-details-name',
+      [
+        '.taskDetails-name',
+        '.taskDialog-header-title',
+        '#taskDialog [name="name"]',
+        'textarea[name="name"]',
+        'input[name="name"]',
+        '[class*="task-details"] [class*="title"]',
+        '.board-task-details-name',
+      ].join(', '),
     ) ?? root.querySelector('h1, h2');
 
   const descriptionEl =
     root.querySelector(
-      '.taskDialog-description, #taskDialog [contenteditable="true"], [class*="description"], .board-task-details-description, [contenteditable="true"]',
+      [
+        '.taskDetails-description',
+        '.taskDialog-description',
+        '#taskDialog [contenteditable="true"]',
+        '[class*="description"]',
+        '.board-task-details-description',
+        '[contenteditable="true"]',
+      ].join(', '),
     ) ?? null;
 
   const labelEls = root.querySelectorAll(
-    '.taskDialog-labels span, [class*="label"], .board-task-details-labels span, .label',
+    [
+      '.taskDetails-labels-item',
+      '.taskDialog-labels span',
+      '[class*="label"]',
+      '.board-task-details-labels span',
+      '.label',
+    ].join(', '),
   );
 
   const descriptionText = textOf(descriptionEl);
   const descriptionHtml = descriptionEl?.innerHTML ?? '';
   const title = textOf(titleEl);
-
-  const taskId =
-    (root instanceof Element
-      ? root.getAttribute('data-task-id')
-      : null) ??
-    document
-      .querySelector('[data-task-id]')
-      ?.getAttribute('data-task-id') ??
-    null;
+  const taskId = resolveTaskId(root, title);
 
   const labels = Array.from(labelEls)
     .map((el) => textOf(el))
@@ -87,6 +145,6 @@ export function scrapeTaskContext(root: Document | Element = document): TaskCont
     descriptionText,
     descriptionHtml,
     labels,
-    links: parseLinks(`${title}\n${descriptionText}`),
+    links: parseLinks(`${title}\n${descriptionText}\n${descriptionHtml}`),
   };
 }

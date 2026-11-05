@@ -343,6 +343,19 @@ function clearBubbles(root: ParentNode = document): void {
   root.querySelectorAll(`[${BUBBLE_ATTR}]`).forEach((el) => el.remove());
 }
 
+function toolsVisibleForTask(
+  tools: ToolDefinition[],
+  settings: PublicSettings,
+  scrapeRoot: HTMLElement | Document,
+): ToolDefinition[] {
+  const task = scrapeTaskContext(scrapeRoot);
+  return tools.filter((tool) => {
+    if (!tool.canShow) return true;
+    const config = settings.tools[tool.id]?.config ?? {};
+    return tool.canShow(task, config);
+  });
+}
+
 function mountBubbles(
   mountParent: HTMLElement,
   tools: ToolDefinition[],
@@ -351,9 +364,6 @@ function mountBubbles(
   deleteAnchor: Element | null,
 ): void {
   for (const tool of tools) {
-    const task = scrapeTaskContext(scrapeRoot);
-    if (tool.canShow && !tool.canShow(task)) continue;
-
     // Avoid duplicates if sync races
     if (mountParent.querySelector(`[${BUBBLE_ATTR}="${tool.id}"]`)) continue;
 
@@ -364,7 +374,12 @@ function mountBubbles(
     const open = () => {
       const latestTask = scrapeTaskContext(scrapeRoot);
       const config = settings.tools[tool.id]?.config ?? {};
-      openToolModal({ tool, task: latestTask, config });
+      openToolModal({
+        tool,
+        task: latestTask,
+        config,
+        secretStatus: settings.secretStatus,
+      });
     };
     bubble.addEventListener('click', (e) => {
       e.preventDefault();
@@ -412,16 +427,22 @@ export function syncBubbles(settings: PublicSettings): void {
     console.info('[OpoKanbanTools] syncBubbles', JSON.parse(debug));
   }
 
+  const scrapeRoot = panel ?? document;
+  const shown = toolsVisibleForTask(tools, settings, scrapeRoot);
+
   if (native) {
     rail?.remove();
     const already = Array.from(native.querySelectorAll(`[${BUBBLE_ATTR}]`));
-    const ids = tools.map((t) => t.id).sort().join(',');
+    const ids = shown
+      .map((t) => t.id)
+      .sort()
+      .join(',');
     const existingIds = already
       .map((el) => el.getAttribute(BUBBLE_ATTR) ?? '')
       .sort()
       .join(',');
-    // Rebuild only when the set of tools changed or bubbles are orphaned
-    if (ids === existingIds && already.length === tools.length) {
+    // Rebuild when enabled/canShow set changes or bubbles are orphaned
+    if (ids === existingIds && already.length === shown.length) {
       const deleteAnchor = findDeleteAnchor(native);
       for (const bubble of already) {
         if (deleteAnchor && bubble.nextSibling !== deleteAnchor) {
@@ -432,7 +453,7 @@ export function syncBubbles(settings: PublicSettings): void {
     }
     clearBubbles();
     const deleteAnchor = findDeleteAnchor(native);
-    mountBubbles(native, tools, settings, panel ?? document, deleteAnchor);
+    mountBubbles(native, shown, settings, scrapeRoot, deleteAnchor);
     return;
   }
 
@@ -445,7 +466,7 @@ export function syncBubbles(settings: PublicSettings): void {
   clearBubbles();
   const fixedRail = ensureFixedRail();
   positionRail(fixedRail, panel);
-  mountBubbles(fixedRail, tools, settings, panel, null);
+  mountBubbles(fixedRail, shown, settings, panel, null);
 }
 
 export function startBubbleObserver(getSettings: () => PublicSettings): () => void {

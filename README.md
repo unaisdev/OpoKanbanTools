@@ -2,7 +2,7 @@
 
 Chrome extension (Manifest V3) that adds custom **action bubbles** next to an open KanbanFlow task, backed by a plugin architecture and an options page for credentials and tool toggles.
 
-This scaffold ships **architecture + admin panel** only. No GitHub Actions / Sentry integrations yet — an **Example Tool** stub validates the bubble → modal → settings loop.
+Ships the plugin architecture, admin panel, an **Example Tool** stub, and the **CI Build** tool (ported from KF CI Build) that dispatches GitHub Actions workflows from a KanbanFlow task.
 
 ## Stack
 
@@ -21,8 +21,9 @@ pnpm dev
 2. Enable **Developer mode**
 3. **Load unpacked** → select `.output/chrome-mv3` (WXT prints the path on start)
 4. Open the extension **Options** (or click the toolbar icon)
-5. Enable **Example Tool**
-6. Open a task on [kanbanflow.com](https://kanbanflow.com) — a bubble should appear on the side rail
+5. Paste a GitHub token under **Global credentials** (`actions:read` + `actions:write`)
+6. Enable **CI Build** (and optionally **Example Tool**)
+7. Open a task with the `pr:app` label on [kanbanflow.com](https://kanbanflow.com) — the CI Build bubble should appear on the side rail
 
 ```bash
 pnpm build    # production build
@@ -71,16 +72,24 @@ registerTool({
 - Content scripts receive `PublicSettings` (toggles, config, `secretStatus` booleans only).
 - Future API calls (GitHub, Sentry) must be proxied through `background.ts`.
 
-## Adding CI Build / Sentry later
+## CI Build tool
 
-Checklist for a real tool:
+Port of the standalone **KanbanFlow → GitHub CI Build** extension into `src/tools/ci-build/`:
 
-1. Create `src/tools/ci-build/` (or `sentry/`) with `index.ts` + modal component
+- Bubble only when the task has the configured label (default `pr:app`)
+- Finds open PRs by KanbanFlow task id in the PR body (fallback: title search)
+- Reads `workflow_dispatch` inputs from the workflow YAML (fallback defaults)
+- Dispatches App Testing Environments, tracks runs per task, cancel + build number copy
+
+Config lives in the tool’s Options fields (`owner` / `repo` / `workflow` / offset). The GitHub token is the shared **Global credentials** secret.
+
+## Adding Sentry (or another tool) later
+
+1. Create `src/tools/<id>/` with `index.ts` + modal component
 2. Import the module from `src/tools/index.ts`
-3. Add host permissions in `wxt.config.ts` (`api.github.com`, Sentry, …)
+3. Add host permissions in `wxt.config.ts`
 4. Add message types in `src/core/messaging.ts` and handlers in `background.ts` that use `getSecret()`
-5. Parse PR/branch/issue from `task.links` (already stubbed in `taskParser.ts`)
-6. Document required token scopes in `GLOBAL_SECRET_META` / tool description
+5. Parse links from `task.links` / extend `taskParser.ts` as needed
 
 **GitHub Actions reminder:** listing workflows needs `actions:read`; *dispatching* workflows needs `actions:write` on a fine-grained PAT.
 

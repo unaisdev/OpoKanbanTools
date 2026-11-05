@@ -1,11 +1,16 @@
 import { createRoot, type Root } from 'react-dom/client';
 import type { ReactNode } from 'react';
-import type { TaskContext, ToolDefinition } from '@/src/core/types';
+import type {
+  GlobalSecretKey,
+  TaskContext,
+  ToolDefinition,
+} from '@/src/core/types';
 
 type OpenModalArgs = {
   tool: ToolDefinition;
   task: TaskContext;
   config: Record<string, unknown>;
+  secretStatus?: Record<GlobalSecretKey, boolean>;
 };
 
 let hostEl: HTMLDivElement | null = null;
@@ -68,12 +73,17 @@ export function closeToolModal(): void {
   }
 }
 
-export function openToolModal({ tool, task, config }: OpenModalArgs): void {
+export function openToolModal({
+  tool,
+  task,
+  config,
+  secretStatus,
+}: OpenModalArgs): void {
   ensureHost();
   const onClose = () => closeToolModal();
   root!.render(
     <ModalShell title={tool.name} onClose={onClose}>
-      {tool.renderModal({ task, config, onClose })}
+      {tool.renderModal({ task, config, onClose, secretStatus })}
     </ModalShell>,
   );
 }

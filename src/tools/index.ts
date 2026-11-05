@@ -1,5 +1,5 @@
 import './_example';
+import './ci-build';
 
 // Future tools:
-// import './ci-build';
 // import './sentry';

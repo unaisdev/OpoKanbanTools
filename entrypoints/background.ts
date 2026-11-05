@@ -1,6 +1,7 @@
 import '@/src/tools';
 import {
   isOktRequest,
+  isSettingsRequest,
   type OktEvent,
   type OktResponse,
 } from '@/src/core/messaging';
@@ -13,6 +14,10 @@ import {
   setToolConfig,
   setToolEnabled,
 } from '@/src/core/storage';
+import {
+  GitHubError,
+  handleCiBuildAction,
+} from '@/src/tools/ci-build/githubApi';
 
 async function broadcastSettings(settings: PublicSettings): Promise<void> {
   const event: OktEvent = { type: 'SETTINGS_UPDATED', settings };
@@ -45,6 +50,16 @@ export default defineBackground(() => {
 
     void (async () => {
       try {
+        if (!isSettingsRequest(message)) {
+          const data = await handleCiBuildAction(
+            message.action,
+            message.payload ?? {},
+          );
+          const response: OktResponse = { ok: true, data };
+          sendResponse(response);
+          return;
+        }
+
         let settings;
         switch (message.type) {
           case 'GET_SETTINGS':
@@ -76,6 +91,7 @@ export default defineBackground(() => {
         const response: OktResponse = {
           ok: false,
           error: err instanceof Error ? err.message : 'Storage error',
+          status: err instanceof GitHubError ? err.status : undefined,
         };
         sendResponse(response);
       }
