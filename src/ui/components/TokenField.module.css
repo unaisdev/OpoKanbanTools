@@ -18,11 +18,36 @@
   gap: 12px;
 }
 
+.labelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .label {
   font-family: var(--okt-sans);
   font-size: 14px;
   font-weight: 600;
   color: var(--okt-ink);
+}
+
+.infoBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--okt-ink-muted);
+  cursor: pointer;
+}
+
+.infoBtn:hover {
+  background: var(--okt-accent-soft);
+  color: var(--okt-accent);
 }
 
 .hint {
@@ -32,6 +57,23 @@
   line-height: 1.4;
   color: var(--okt-ink-muted);
   max-width: 56ch;
+}
+
+.createLink {
+  margin: 6px 0 0;
+  font-family: var(--okt-sans);
+  font-size: 12px;
+}
+
+.createLink a {
+  color: var(--okt-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.createLink a:hover {
+  opacity: 0.85;
 }
 
 .badge {
@@ -145,4 +187,186 @@
   font-family: var(--okt-sans);
   font-size: 12px;
   color: var(--okt-accent);
+}
+
+/* —— How-to modal —— */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(20, 24, 28, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  width: min(440px, 100%);
+  max-height: min(86vh, 640px);
+  overflow: auto;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid var(--okt-line);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
+  padding: 18px 18px 16px;
+}
+
+.modalHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-family: var(--okt-sans);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--okt-ink);
+}
+
+.modalClose {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--okt-ink-muted);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modalClose:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--okt-ink);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.step {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.stepNum {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--okt-sans);
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--okt-accent-soft);
+  color: var(--okt-accent);
+}
+
+.stepText {
+  font-family: var(--okt-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--okt-ink);
+  padding-top: 2px;
+}
+
+.scopesBlock {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--okt-line);
+}
+
+.scopesLabel {
+  font-family: var(--okt-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--okt-ink-muted);
+  margin-bottom: 8px;
+}
+
+.scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scopeChip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f4f6f8;
+  border: 1px solid var(--okt-line);
+  color: var(--okt-ink);
+}
+
+.note {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff8c5;
+  border: 1px solid #d4a72c66;
+}
+
+.note strong {
+  display: block;
+  font-family: var(--okt-sans);
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: #7a5b00;
+}
+
+.note p {
+  margin: 0;
+  font-family: var(--okt-sans);
+  font-size: 12px;
+  line-height: 1.45;
+  color: #5c4a12;
+}
+
+.modalFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--okt-line);
+}
+
+.modalPrimaryLink {
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--okt-accent);
+  color: #fff;
+  font-family: var(--okt-sans);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.modalPrimaryLink:hover {
+  opacity: 0.92;
 }

@@ -1,5 +1,3 @@
 import './_example';
 import './ci-build';
-
-// Future tools:
-// import './sentry';
+import './sentry-resolve';

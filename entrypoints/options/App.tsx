@@ -84,6 +84,9 @@ export default function App() {
                 key={key}
                 label={meta.label}
                 hint={meta.hint}
+                howTo={meta.howTo}
+                createUrl={meta.createUrl}
+                createLabel={meta.createLabel}
                 placeholder={meta.placeholder}
                 configured={settings.secretStatus[key]}
                 disabled={busy}

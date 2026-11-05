@@ -13,7 +13,16 @@ export type OktCiBuildRequest = {
   payload?: Record<string, unknown>;
 };
 
-export type OktRequest = OktSettingsRequest | OktCiBuildRequest;
+export type OktSentryRequest = {
+  type: 'SENTRY';
+  action: string;
+  payload?: Record<string, unknown>;
+};
+
+export type OktRequest =
+  | OktSettingsRequest
+  | OktCiBuildRequest
+  | OktSentryRequest;
 
 export type OktEvent = {
   type: 'SETTINGS_UPDATED';
@@ -51,12 +60,13 @@ export function isOktRequest(value: unknown): value is OktRequest {
     type === 'SET_TOOL_CONFIG' ||
     type === 'SET_SECRETS' ||
     type === 'CLEAR_SECRET' ||
-    type === 'CI_BUILD'
+    type === 'CI_BUILD' ||
+    type === 'SENTRY'
   );
 }
 
 export function isSettingsRequest(
   value: OktRequest,
 ): value is OktSettingsRequest {
-  return value.type !== 'CI_BUILD';
+  return value.type !== 'CI_BUILD' && value.type !== 'SENTRY';
 }

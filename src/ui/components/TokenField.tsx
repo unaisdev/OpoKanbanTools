@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import type { SecretHowTo } from '@/src/core/types';
 import styles from './TokenField.module.css';
 
 type Props = {
   label: string;
   hint?: string;
+  howTo?: SecretHowTo;
+  createUrl?: string;
+  createLabel?: string;
   placeholder?: string;
   configured: boolean;
   disabled?: boolean;
@@ -52,9 +56,131 @@ function TrashIcon() {
   );
 }
 
+function InfoIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 16v-4" />
+      <path d="M12 8h.01" />
+    </svg>
+  );
+}
+
+function HowToModal({
+  howTo,
+  createUrl,
+  createLabel,
+  onClose,
+}: {
+  howTo: SecretHowTo;
+  createUrl?: string;
+  createLabel?: string;
+  onClose: () => void;
+}) {
+  const titleId = useId();
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className={styles.modalBackdrop}
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={styles.modalHead}>
+          <h2 id={titleId} className={styles.modalTitle}>
+            {howTo.title}
+          </h2>
+          <button
+            type="button"
+            className={styles.modalClose}
+            aria-label="Cerrar"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+
+        <ol className={styles.steps}>
+          {howTo.steps.map((step, i) => (
+            <li key={step} className={styles.step}>
+              <span className={styles.stepNum} aria-hidden>
+                {i + 1}
+              </span>
+              <span className={styles.stepText}>{step}</span>
+            </li>
+          ))}
+        </ol>
+
+        {howTo.scopes.length ? (
+          <div className={styles.scopesBlock}>
+            <div className={styles.scopesLabel}>Permisos necesarios</div>
+            <div className={styles.scopes}>
+              {howTo.scopes.map((scope) => (
+                <code key={scope} className={styles.scopeChip}>
+                  {scope}
+                </code>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {howTo.note ? (
+          <div className={styles.note}>
+            <strong>Nota</strong>
+            <p>{howTo.note}</p>
+          </div>
+        ) : null}
+
+        <div className={styles.modalFooter}>
+          {createUrl ? (
+            <a
+              className={styles.modalPrimaryLink}
+              href={createUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {createLabel || 'Abrir página para crear el token'}
+            </a>
+          ) : null}
+          <button type="button" className={styles.ghost} onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TokenField({
   label,
   hint,
+  howTo,
+  createUrl,
+  createLabel,
   placeholder,
   configured,
   disabled,
@@ -65,6 +191,7 @@ export function TokenField({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(!configured);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useEffect(() => {
     if (!configured) setEditing(true);
@@ -107,8 +234,28 @@ export function TokenField({
     <div className={styles.root}>
       <div className={styles.top}>
         <div>
-          <div className={styles.label}>{label}</div>
+          <div className={styles.labelRow}>
+            <div className={styles.label}>{label}</div>
+            {howTo ? (
+              <button
+                type="button"
+                className={styles.infoBtn}
+                aria-label={`Cómo obtener ${label}`}
+                title="Cómo obtenerlo"
+                onClick={() => setInfoOpen(true)}
+              >
+                <InfoIcon />
+              </button>
+            ) : null}
+          </div>
           {hint ? <p className={styles.hint}>{hint}</p> : null}
+          {createUrl ? (
+            <p className={styles.createLink}>
+              <a href={createUrl} target="_blank" rel="noreferrer">
+                {createLabel || 'Abrir página para crear el token'}
+              </a>
+            </p>
+          ) : null}
         </div>
         <span className={styles.badge} data-on={configured || undefined}>
           {configured ? 'Configured' : 'Not set'}
@@ -189,6 +336,15 @@ export function TokenField({
       )}
 
       {message ? <p className={styles.message}>{message}</p> : null}
+
+      {infoOpen && howTo ? (
+        <HowToModal
+          howTo={howTo}
+          createUrl={createUrl}
+          createLabel={createLabel}
+          onClose={() => setInfoOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

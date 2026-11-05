@@ -18,6 +18,10 @@ import {
   GitHubError,
   handleCiBuildAction,
 } from '@/src/tools/ci-build/githubApi';
+import {
+  SentryError,
+  handleSentryAction,
+} from '@/src/tools/sentry-resolve/sentryApi';
 
 async function broadcastSettings(settings: PublicSettings): Promise<void> {
   const event: OktEvent = { type: 'SETTINGS_UPDATED', settings };
@@ -36,10 +40,43 @@ async function broadcastSettings(settings: PublicSettings): Promise<void> {
   );
 }
 
+/** Strip Origin/Referer on Sentry API calls so CSRF does not reject chrome-extension://. */
+const SENTRY_STRIP_ORIGIN_RULE_ID = 1001;
+
+async function ensureSentryOriginRules(): Promise<void> {
+  try {
+    await browser.declarativeNetRequest.updateDynamicRules({
+      removeRuleIds: [SENTRY_STRIP_ORIGIN_RULE_ID],
+      addRules: [
+        {
+          id: SENTRY_STRIP_ORIGIN_RULE_ID,
+          priority: 1,
+          action: {
+            type: 'modifyHeaders',
+            requestHeaders: [
+              { header: 'Origin', operation: 'remove' },
+              { header: 'Referer', operation: 'remove' },
+            ],
+          },
+          condition: {
+            regexFilter: '^https://([^/]+\\.)?sentry\\.io/api/',
+            resourceTypes: ['xmlhttprequest', 'other'],
+          },
+        },
+      ],
+    });
+  } catch (err) {
+    console.warn('[OpoKanbanTools] Failed to install Sentry origin rules', err);
+  }
+}
+
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(() => {
     void migrateOnInstall();
+    void ensureSentryOriginRules();
   });
+
+  void ensureSentryOriginRules();
 
   browser.action.onClicked.addListener(() => {
     void browser.runtime.openOptionsPage();
@@ -51,10 +88,16 @@ export default defineBackground(() => {
     void (async () => {
       try {
         if (!isSettingsRequest(message)) {
-          const data = await handleCiBuildAction(
-            message.action,
-            message.payload ?? {},
-          );
+          const data =
+            message.type === 'SENTRY'
+              ? await handleSentryAction(
+                  message.action,
+                  message.payload ?? {},
+                )
+              : await handleCiBuildAction(
+                  message.action,
+                  message.payload ?? {},
+                );
           const response: OktResponse = { ok: true, data };
           sendResponse(response);
           return;
@@ -91,7 +134,10 @@ export default defineBackground(() => {
         const response: OktResponse = {
           ok: false,
           error: err instanceof Error ? err.message : 'Storage error',
-          status: err instanceof GitHubError ? err.status : undefined,
+          status:
+            err instanceof GitHubError || err instanceof SentryError
+              ? err.status
+              : undefined,
         };
         sendResponse(response);
       }

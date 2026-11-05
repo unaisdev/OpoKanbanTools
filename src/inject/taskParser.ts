@@ -4,14 +4,80 @@ const GITHUB_PR_RE =
   /https?:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)/gi;
 const GITHUB_TREE_RE =
   /https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/(?:tree|commits)\/([A-Za-z0-9._/-]+)/gi;
-const SENTRY_ISSUE_RE =
-  /https?:\/\/(?:[\w-]+\.)?sentry\.io\/(?:organizations\/)?([^/\s]+)\/(?:issues|projects)\/([^/\s?#]+)?/gi;
 const BRANCH_HINT_RE =
   /(?:branch|rama)\s*[:=]\s*[`"]?([A-Za-z0-9._/-]+)/gi;
+
+/** Match any sentry.io URL that looks like an issue link; parse carefully below. */
+const SENTRY_URL_RE = /https?:\/\/(?:[\w.-]+\.)?sentry\.io\/[^\s<>"')\]]+/gi;
 
 function pushUnique(list: string[], value: string) {
   const cleaned = value.replace(/[),.;]+$/, '').replace(/\/$/, '');
   if (cleaned && !list.includes(cleaned)) list.push(cleaned);
+}
+
+function parseSentryIssueUrl(
+  raw: string,
+): ParsedLinks['sentryIssue'] | undefined {
+  let url: URL;
+  try {
+    url = new URL(raw.replace(/[),.;]+$/, ''));
+  } catch {
+    return undefined;
+  }
+
+  if (!/(?:^|\.)sentry\.io$/i.test(url.hostname)) return undefined;
+
+  const apiBase = url.origin;
+  const parts = url.pathname.split('/').filter(Boolean);
+
+  // https://sentry.io/organizations/{org}/issues/{id}/
+  // https://sentry.io/organizations/{org}/projects/{project}/issues/{id}/
+  const orgIdx = parts.findIndex((p) => p === 'organizations');
+  if (orgIdx >= 0 && parts[orgIdx + 1]) {
+    const org = parts[orgIdx + 1]!;
+    const issuesIdx = parts.indexOf('issues', orgIdx + 2);
+    const issueId = issuesIdx >= 0 ? parts[issuesIdx + 1] : undefined;
+    if (!issueId) return undefined;
+    const projectsIdx = parts.indexOf('projects', orgIdx + 2);
+    const project =
+      projectsIdx >= 0 && projectsIdx < issuesIdx
+        ? parts[projectsIdx + 1]
+        : undefined;
+    return {
+      url: url.toString(),
+      apiBase,
+      org,
+      issueId,
+      ...(project ? { project } : {}),
+    };
+  }
+
+  // https://{org}.sentry.io/issues/{id}/
+  // https://{org}.sentry.io/projects/{project}/issues/{id}/
+  // Region hosts (us/eu/de) need /organizations/{org}/… (handled above).
+  const REGION_HOSTS = new Set(['www', 'us', 'eu', 'de', 'sentry']);
+  const hostMatch = url.hostname.match(/^([\w-]+)\.sentry\.io$/i);
+  const hostSlug = hostMatch?.[1]?.toLowerCase();
+  if (hostSlug && !REGION_HOSTS.has(hostSlug)) {
+    const org = hostMatch![1]!;
+    const issuesIdx = parts.indexOf('issues');
+    const issueId = issuesIdx >= 0 ? parts[issuesIdx + 1] : undefined;
+    if (!issueId) return undefined;
+    const projectsIdx = parts.indexOf('projects');
+    const project =
+      projectsIdx >= 0 && (issuesIdx < 0 || projectsIdx < issuesIdx)
+        ? parts[projectsIdx + 1]
+        : undefined;
+    return {
+      url: url.toString(),
+      apiBase,
+      org,
+      issueId,
+      ...(project ? { project } : {}),
+    };
+  }
+
+  return undefined;
 }
 
 export function parseLinks(text: string): ParsedLinks {
@@ -28,16 +94,15 @@ export function parseLinks(text: string): ParsedLinks {
   }
   GITHUB_PR_RE.lastIndex = 0;
 
-  const sentryMatch = SENTRY_ISSUE_RE.exec(text);
-  if (sentryMatch?.[1]) {
-    links.sentryIssue = {
-      url: sentryMatch[0],
-      org: sentryMatch[1],
-      project: sentryMatch[2],
-      issueId: sentryMatch[2],
-    };
+  let sentryMatch: RegExpExecArray | null;
+  while ((sentryMatch = SENTRY_URL_RE.exec(text)) !== null) {
+    const parsed = parseSentryIssueUrl(sentryMatch[0]);
+    if (parsed) {
+      links.sentryIssue = parsed;
+      break;
+    }
   }
-  SENTRY_ISSUE_RE.lastIndex = 0;
+  SENTRY_URL_RE.lastIndex = 0;
 
   let branchMatch: RegExpExecArray | null;
   while ((branchMatch = BRANCH_HINT_RE.exec(text)) !== null) {
