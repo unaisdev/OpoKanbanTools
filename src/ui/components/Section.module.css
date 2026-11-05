@@ -1,0 +1,99 @@
+.root {
+  background: var(--okt-bg-elevated);
+  border: 1px solid var(--okt-line);
+  border-radius: var(--okt-radius);
+  box-shadow: var(--okt-shadow);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px;
+}
+
+.root:not([data-collapsed]) .header {
+  padding-bottom: 0;
+}
+
+.headerMain {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  width: 100%;
+}
+
+.toggle:hover .title {
+  color: var(--okt-accent);
+}
+
+.chevron {
+  flex-shrink: 0;
+  width: 1.1em;
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--okt-ink-muted);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--okt-font);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--okt-ink);
+  display: block;
+  transition: color 0.12s ease;
+}
+
+.description {
+  margin: 0;
+  font-family: var(--okt-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--okt-ink-muted);
+  max-width: 52ch;
+  display: block;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.action {
+  flex-shrink: 0;
+}
+
+.body {
+  padding: 18px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

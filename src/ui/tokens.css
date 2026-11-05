@@ -1,0 +1,15 @@
+:root {
+  --okt-bg: #f3efe6;
+  --okt-bg-elevated: #fffdf8;
+  --okt-ink: #1a1a1a;
+  --okt-ink-muted: #5c5a55;
+  --okt-line: rgba(26, 26, 26, 0.1);
+  --okt-accent: #0f6b5c;
+  --okt-accent-soft: rgba(15, 107, 92, 0.12);
+  --okt-danger: #9b2c2c;
+  --okt-radius: 12px;
+  --okt-shadow: 0 10px 30px rgba(40, 32, 18, 0.08);
+  --okt-font: 'Iowan Old Style', 'Palatino Linotype', Palatino, 'Book Antiqua',
+    Georgia, serif;
+  --okt-sans: 'Avenir Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}

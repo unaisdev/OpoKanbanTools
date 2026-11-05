@@ -1,0 +1,32 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--okt-line);
+  background: rgba(0, 0, 0, 0.03);
+  font-family: var(--okt-sans);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.chip[data-on] {
+  border-color: rgba(15, 107, 92, 0.28);
+  background: var(--okt-accent-soft);
+}
+
+.name {
+  font-weight: 600;
+  color: var(--okt-ink);
+}
+
+.state {
+  color: var(--okt-ink-muted);
+  text-transform: lowercase;
+}
+
+.chip[data-on] .state {
+  color: var(--okt-accent);
+  font-weight: 600;
+}

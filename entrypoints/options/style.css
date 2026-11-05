@@ -1,0 +1,90 @@
+@import '../../src/ui/tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(15, 107, 92, 0.12), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(180, 120, 40, 0.1), transparent 50%),
+    linear-gradient(180deg, #efe8da 0%, var(--okt-bg) 40%, #e7e1d4 100%);
+  color: var(--okt-ink);
+}
+
+body {
+  font-family: var(--okt-sans);
+}
+
+.okt-page {
+  width: min(880px, calc(100% - 40px));
+  margin: 0 auto;
+  padding: 48px 0 64px;
+}
+
+.okt-hero {
+  margin-bottom: 28px;
+}
+
+.okt-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--okt-accent);
+  font-weight: 700;
+}
+
+.okt-brand {
+  margin: 0;
+  font-family: var(--okt-font);
+  font-size: clamp(36px, 6vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  font-weight: 650;
+}
+
+.okt-lede {
+  margin: 14px 0 0;
+  max-width: 54ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--okt-ink-muted);
+}
+
+.okt-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.okt-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.okt-footer {
+  margin-top: 22px;
+  font-size: 12px;
+  color: var(--okt-ink-muted);
+}
+
+.okt-muted,
+.okt-error {
+  font-size: 14px;
+}
+
+.okt-error {
+  color: var(--okt-danger);
+}
+
+@media (max-width: 640px) {
+  .okt-page {
+    width: min(100% - 24px, 880px);
+    padding-top: 28px;
+  }
+}

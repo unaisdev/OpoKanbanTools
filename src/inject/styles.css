@@ -1,0 +1,154 @@
+/* Injected into the page (not shadow) so bubbles sit beside the task dialog. */
+
+/* When we clone a native action item, only normalize the swapped SVG. */
+[data-okt='bubble'] svg.okt-bubble__icon,
+[data-okt='bubble'] svg {
+  width: 1.15em;
+  height: 1.15em;
+  display: block;
+  color: inherit;
+  stroke: currentColor;
+  fill: none;
+}
+
+/* Fallback bubble (fixed rail) — tuned to look like KanbanFlow actions */
+.okt-bubble {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  cursor: pointer;
+  user-select: none;
+  font-family: inherit;
+  pointer-events: auto;
+  color: #555;
+}
+
+.okt-bubble__btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.06);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.okt-bubble__btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  stroke: currentColor;
+}
+
+.okt-bubble__label {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: none;
+  color: #555;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+  padding: 5px 9px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.okt-bubble-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  position: fixed;
+  z-index: 2147482000;
+  pointer-events: none;
+}
+
+.okt-bubble-rail .okt-bubble {
+  pointer-events: auto;
+}
+
+.okt-modal-root {
+  all: initial;
+}
+
+.okt-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  background: rgba(18, 22, 28, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+.okt-modal {
+  width: min(520px, 100%);
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  background: #f7f4ea;
+  color: #1c1c1c;
+  border-radius: 10px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.okt-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.okt-modal__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.okt-modal__close {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #444;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.okt-modal__close:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.okt-modal__body {
+  padding: 16px 18px 20px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.okt-modal__meta {
+  margin: 0 0 12px;
+  color: #555;
+  font-size: 12px;
+}
+
+.okt-modal__code {
+  display: block;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
