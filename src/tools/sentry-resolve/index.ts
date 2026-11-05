@@ -8,9 +8,9 @@ const sentryIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="okt-bubble__i
 
 registerTool({
   id: TOOL_ID,
-  name: 'Sentry Resolve',
+  name: 'Sentry Actions',
   description:
-    'Marca el issue de Sentry como resolved in next release, te asigna y deja un comentario con el link de la tarea de Kanban.',
+    'Acciones sueltas sobre el issue de Sentry: resolver in next release, asignarte y comentar con el link de Kanban.',
   icon: sentryIcon,
   defaultEnabled: false,
   usesGlobalSecrets: ['sentry'],

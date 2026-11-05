@@ -1,5 +1,11 @@
 import { getSecret } from '@/src/core/storage';
-import type { SentryIssueDetails, SentryPublishResult } from './types';
+import type {
+  SentryActionResult,
+  SentryExistingComment,
+  SentryFindCommentResult,
+  SentryIssueDetails,
+  SentryMe,
+} from './types';
 
 export class SentryError extends Error {
   status: number;
@@ -23,6 +29,7 @@ type RawIssue = {
   title?: string;
   culprit?: string;
   status?: string;
+  statusDetails?: { inNextRelease?: boolean; [key: string]: unknown };
   permalink?: string;
   count?: string;
   userCount?: number;
@@ -92,6 +99,10 @@ function formatSentryErrorBody(body: unknown, fallback: string): string {
   }
 }
 
+function errorMessage(e: unknown, fallback: string): string {
+  return e instanceof Error ? e.message : fallback;
+}
+
 async function getToken(): Promise<string> {
   const token = (await getSecret('sentry')) ?? '';
   if (!token) {
@@ -157,17 +168,34 @@ async function sentryFetch(
 }
 
 function mapIssue(raw: RawIssue): SentryIssueDetails {
+  const assignedType = raw.assignedTo?.type;
+  const assigneeUserId =
+    raw.assignedTo && (!assignedType || assignedType === 'user')
+      ? raw.assignedTo.id != null
+        ? String(raw.assignedTo.id)
+        : null
+      : null;
+
+  let status = String(raw.status ?? 'unknown');
+  if (
+    status.toLowerCase() === 'resolved' &&
+    raw.statusDetails?.inNextRelease === true
+  ) {
+    status = 'resolvedInNextRelease';
+  }
+
   return {
     id: String(raw.id ?? ''),
     shortId: String(raw.shortId ?? raw.id ?? ''),
     title: String(raw.title ?? '(sin título)'),
     culprit: String(raw.culprit ?? ''),
-    status: String(raw.status ?? 'unknown'),
+    status,
     projectSlug: String(raw.project?.slug ?? ''),
     projectName: String(raw.project?.name ?? raw.project?.slug ?? ''),
     permalink: String(raw.permalink ?? ''),
     assigneeName: raw.assignedTo?.name ?? null,
     assigneeEmail: raw.assignedTo?.email ?? null,
+    assigneeUserId,
     count: raw.count != null ? String(raw.count) : null,
     userCount: typeof raw.userCount === 'number' ? raw.userCount : null,
     firstSeen: raw.firstSeen ?? null,
@@ -186,7 +214,9 @@ async function fetchRawIssue(
   )) as RawIssue;
 }
 
-async function getIssue(payload: Record<string, unknown>): Promise<SentryIssueDetails> {
+async function getIssue(
+  payload: Record<string, unknown>,
+): Promise<SentryIssueDetails> {
   const apiBase = requireString(payload, 'apiBase');
   const org = requireString(payload, 'org');
   const issueId = requireString(payload, 'issueId');
@@ -219,6 +249,16 @@ async function whoami(apiBase: string): Promise<SentryUser> {
   return user;
 }
 
+async function getMe(payload: Record<string, unknown>): Promise<SentryMe> {
+  const apiBase = requireString(payload, 'apiBase');
+  const user = await whoami(apiBase);
+  return {
+    id: String(user.id),
+    name: user.name ?? null,
+    email: user.email ?? null,
+  };
+}
+
 /**
  * Resolve short IDs (PROJECT-ABC) to the numeric group id that write
  * endpoints expect. GET already accepts short IDs; PUT/notes often 400 otherwise.
@@ -229,22 +269,39 @@ function numericIssueId(raw: RawIssue, fallback: string): string {
   return fallback;
 }
 
-async function updateIssueResolvedAndAssigned(
+function isResolvedInNextRelease(raw: RawIssue): boolean {
+  if (raw.statusDetails?.inNextRelease === true) return true;
+  return String(raw.status ?? '').toLowerCase() === 'resolvedinnextrelease';
+}
+
+function assigneeTarget(user: SentryUser): string {
+  return user.email ? user.email : `user:${user.id}`;
+}
+
+function sameAssignee(raw: RawIssue, user: SentryUser): boolean {
+  const assigned = raw.assignedTo;
+  if (!assigned) return false;
+  if (assigned.type && assigned.type !== 'user') return false;
+  if (assigned.id != null && String(assigned.id) === String(user.id)) {
+    return true;
+  }
+  if (
+    assigned.email &&
+    user.email &&
+    assigned.email.toLowerCase() === user.email.toLowerCase()
+  ) {
+    return true;
+  }
+  return false;
+}
+
+async function putIssue(
   apiBase: string,
   org: string,
   numericId: string,
   projectSlug: string | undefined,
-  user: SentryUser,
+  body: Record<string, unknown>,
 ): Promise<RawIssue> {
-  // Matches what the Sentry UI sends for "Resolved in next release".
-  const body: Record<string, unknown> = {
-    status: 'resolved',
-    statusDetails: { inNextRelease: true },
-    assignedTo: user.email
-      ? user.email
-      : `user:${user.id}`,
-  };
-
   const orgPath = `/organizations/${encodeURIComponent(org)}/issues/${encodeURIComponent(numericId)}/`;
 
   try {
@@ -253,7 +310,6 @@ async function updateIssueResolvedAndAssigned(
       body,
     })) as RawIssue;
   } catch (first) {
-    // Fallback: project bulk-style endpoint the UI also uses.
     if (projectSlug) {
       try {
         const list = (await sentryFetch(
@@ -264,23 +320,254 @@ async function updateIssueResolvedAndAssigned(
         if (Array.isArray(list)) return list[0] ?? {};
         return list;
       } catch {
-        // fall through to original error
+        // fall through
       }
     }
+    throw first;
+  }
+}
 
-    // Last resort: status string form from the public docs.
+async function loadWritableIssue(
+  payload: Record<string, unknown>,
+): Promise<{
+  apiBase: string;
+  org: string;
+  numericId: string;
+  projectSlug: string | undefined;
+  raw: RawIssue;
+}> {
+  const apiBase = requireString(payload, 'apiBase');
+  const org = requireString(payload, 'org');
+  const issueId = requireString(payload, 'issueId');
+  const raw = await fetchRawIssue(apiBase, org, issueId);
+  return {
+    apiBase,
+    org,
+    numericId: numericIssueId(raw, issueId),
+    projectSlug: raw.project?.slug,
+    raw,
+  };
+}
+
+async function resolveIssue(
+  payload: Record<string, unknown>,
+): Promise<SentryActionResult> {
+  try {
+    const { apiBase, org, numericId, projectSlug, raw } =
+      await loadWritableIssue(payload);
+
+    if (isResolvedInNextRelease(raw)) {
+      return {
+        ok: true,
+        already: true,
+        status: String(raw.status ?? 'resolved'),
+        permalink: String(raw.permalink ?? ''),
+      };
+    }
+
+    const bodyPrimary: Record<string, unknown> = {
+      status: 'resolved',
+      statusDetails: { inNextRelease: true },
+    };
+
     try {
-      return (await sentryFetch(apiBase, orgPath, {
-        method: 'PUT',
-        body: {
+      const updated = await putIssue(
+        apiBase,
+        org,
+        numericId,
+        projectSlug,
+        bodyPrimary,
+      );
+      return {
+        ok: true,
+        status: String(updated.status ?? 'resolved'),
+        permalink: String(updated.permalink ?? raw.permalink ?? ''),
+      };
+    } catch (first) {
+      // Public-docs form as fallback.
+      try {
+        const updated = await putIssue(apiBase, org, numericId, projectSlug, {
           status: 'resolvedInNextRelease',
-          assignedTo: `user:${user.id}`,
-        },
-      })) as RawIssue;
-    } catch {
-      throw first;
+        });
+        return {
+          ok: true,
+          status: String(updated.status ?? 'resolvedInNextRelease'),
+          permalink: String(updated.permalink ?? raw.permalink ?? ''),
+        };
+      } catch {
+        return {
+          ok: false,
+          error: errorMessage(first, 'No se pudo marcar como resolved in next release'),
+          permalink: String(raw.permalink ?? ''),
+        };
+      }
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: errorMessage(e, 'No se pudo marcar como resolved in next release'),
+    };
+  }
+}
+
+async function assignIssue(
+  payload: Record<string, unknown>,
+): Promise<SentryActionResult> {
+  try {
+    const { apiBase, org, numericId, projectSlug, raw } =
+      await loadWritableIssue(payload);
+
+    let user: SentryUser;
+    try {
+      user = await whoami(apiBase);
+    } catch (e) {
+      return {
+        ok: false,
+        error: errorMessage(e, 'No se pudo identificar al usuario del token'),
+      };
+    }
+
+    const displayName = user.name || user.email || String(user.id);
+
+    if (sameAssignee(raw, user)) {
+      return {
+        ok: true,
+        already: true,
+        assigneeName: raw.assignedTo?.name ?? displayName,
+        assigneeEmail: raw.assignedTo?.email ?? user.email ?? null,
+        assigneeUserId: String(user.id),
+        permalink: String(raw.permalink ?? ''),
+      };
+    }
+
+    try {
+      const updated = await putIssue(apiBase, org, numericId, projectSlug, {
+        assignedTo: assigneeTarget(user),
+      });
+      return {
+        ok: true,
+        assigneeName: updated.assignedTo?.name ?? displayName,
+        assigneeEmail: updated.assignedTo?.email ?? user.email ?? null,
+        assigneeUserId: String(user.id),
+        permalink: String(updated.permalink ?? raw.permalink ?? ''),
+      };
+    } catch (e) {
+      return {
+        ok: false,
+        error: errorMessage(e, 'No se pudo asignar el issue'),
+        permalink: String(raw.permalink ?? ''),
+      };
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: errorMessage(e, 'No se pudo asignar el issue'),
+    };
+  }
+}
+
+function commentTextOf(raw: unknown): string | null {
+  const rec = asRecord(raw);
+  if (!rec) return null;
+  if (typeof rec.text === 'string' && rec.text.trim()) return rec.text;
+  // Activity-shaped note: data.text / note
+  const data = asRecord(rec.data);
+  if (data) {
+    if (typeof data.text === 'string' && data.text.trim()) return data.text;
+    if (typeof data.note === 'string' && data.note.trim()) return data.note;
+  }
+  if (typeof rec.note === 'string' && rec.note.trim()) return rec.note;
+  return null;
+}
+
+function mapExistingComment(raw: unknown): SentryExistingComment | null {
+  const rec = asRecord(raw);
+  if (!rec) return null;
+  const text = commentTextOf(raw);
+  if (!text) return null;
+  const id =
+    rec.id != null
+      ? String(rec.id)
+      : typeof rec.event_id === 'string'
+        ? rec.event_id
+        : text.slice(0, 32);
+  const dateCreated =
+    typeof rec.dateCreated === 'string'
+      ? rec.dateCreated
+      : typeof rec.dateAdded === 'string'
+        ? rec.dateAdded
+        : null;
+  return { id, text, dateCreated };
+}
+
+function commentMatchesNeedle(text: string, needle: string): boolean {
+  const hay = text.toLowerCase();
+  const n = needle.trim().toLowerCase();
+  if (!n) return false;
+  if (hay.includes(n)) return true;
+  // Tolerate http↔https and trailing slash differences for Kanban URLs.
+  const compact = (s: string) =>
+    s.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  return compact(hay).includes(compact(n));
+}
+
+async function listIssueComments(
+  apiBase: string,
+  org: string,
+  numericId: string,
+): Promise<SentryExistingComment[]> {
+  const paths = [
+    `/organizations/${encodeURIComponent(org)}/issues/${encodeURIComponent(numericId)}/comments/`,
+    `/issues/${encodeURIComponent(numericId)}/notes/`,
+    `/organizations/${encodeURIComponent(org)}/issues/${encodeURIComponent(numericId)}/notes/`,
+  ];
+
+  let lastError: unknown;
+  for (const path of paths) {
+    try {
+      const raw = await sentryFetch(apiBase, path);
+      const list = Array.isArray(raw)
+        ? raw
+        : Array.isArray(asRecord(raw)?.data)
+          ? (asRecord(raw)!.data as unknown[])
+          : null;
+      if (!list) continue;
+      return list
+        .map(mapExistingComment)
+        .filter((c): c is SentryExistingComment => c != null);
+    } catch (e) {
+      lastError = e;
     }
   }
+
+  if (lastError) {
+    throw lastError instanceof Error
+      ? lastError
+      : new SentryError(0, 'No se pudieron leer los comentarios del issue');
+  }
+  return [];
+}
+
+async function findCommentByNeedle(
+  apiBase: string,
+  org: string,
+  numericId: string,
+  needle: string,
+): Promise<SentryExistingComment | null> {
+  const comments = await listIssueComments(apiBase, org, numericId);
+  for (const c of comments) {
+    if (commentMatchesNeedle(c.text, needle)) return c;
+  }
+  return null;
+}
+
+async function findComment(
+  payload: Record<string, unknown>,
+): Promise<SentryFindCommentResult> {
+  const needle = requireString(payload, 'needle');
+  const { apiBase, org, numericId } = await loadWritableIssue(payload);
+  const comment = await findCommentByNeedle(apiBase, org, numericId, needle);
+  return { found: Boolean(comment), comment };
 }
 
 async function postComment(
@@ -326,136 +613,66 @@ async function postComment(
     : new SentryError(0, 'No se pudo publicar el comentario');
 }
 
-async function publish(
+async function commentIssue(
   payload: Record<string, unknown>,
-): Promise<SentryPublishResult> {
-  const apiBase = requireString(payload, 'apiBase');
-  const org = requireString(payload, 'org');
-  const issueId = requireString(payload, 'issueId');
-  const comment = requireString(payload, 'comment');
-
-  const result: SentryPublishResult = {
-    resolved: false,
-    assigned: false,
-    commented: false,
-    assigneeName: null,
-    permalink: '',
-    errors: [],
-  };
-
-  let user: SentryUser;
+): Promise<SentryActionResult> {
   try {
-    user = await whoami(apiBase);
-  } catch (e) {
-    result.errors.push(
-      e instanceof Error ? e.message : 'No se pudo identificar al usuario',
-    );
-    return result;
-  }
+    const comment = requireString(payload, 'comment');
+    const needle =
+      typeof payload.needle === 'string' && payload.needle.trim()
+        ? payload.needle.trim()
+        : comment;
+    const { apiBase, org, numericId, raw } = await loadWritableIssue(payload);
+    const permalink = String(raw.permalink ?? '');
 
-  result.assigneeName = user.name || user.email || String(user.id);
-
-  let raw: RawIssue;
-  try {
-    raw = await fetchRawIssue(apiBase, org, issueId);
-  } catch (e) {
-    result.errors.push(
-      e instanceof Error
-        ? `Issue: ${e.message}`
-        : 'No se pudo cargar el issue antes de publicar',
-    );
-    return result;
-  }
-
-  const numericId = numericIssueId(raw, issueId);
-  const projectSlug = raw.project?.slug;
-  result.permalink = String(raw.permalink ?? '');
-
-  try {
-    const updated = await updateIssueResolvedAndAssigned(
-      apiBase,
-      org,
-      numericId,
-      projectSlug,
-      user,
-    );
-    result.resolved = true;
-    result.assigned = true;
-    result.permalink = String(updated?.permalink ?? result.permalink);
-    if (updated?.assignedTo?.name) {
-      result.assigneeName = updated.assignedTo.name;
-    }
-  } catch (e) {
-    result.errors.push(
-      e instanceof Error
-        ? `Resolver/asignar: ${e.message}`
-        : 'No se pudo resolver ni asignar el issue',
-    );
-
-    // Try resolve and assign separately so one can succeed.
     try {
-      await sentryFetch(
+      const existing = await findCommentByNeedle(
         apiBase,
-        `/organizations/${encodeURIComponent(org)}/issues/${encodeURIComponent(numericId)}/`,
-        {
-          method: 'PUT',
-          body: {
-            status: 'resolved',
-            statusDetails: { inNextRelease: true },
-          },
-        },
+        org,
+        numericId,
+        needle,
       );
-      result.resolved = true;
-    } catch (e2) {
-      result.errors.push(
-        e2 instanceof Error
-          ? `Resolver: ${e2.message}`
-          : 'No se pudo marcar como resolved in next release',
-      );
-    }
-
-    try {
-      await sentryFetch(
-        apiBase,
-        `/organizations/${encodeURIComponent(org)}/issues/${encodeURIComponent(numericId)}/`,
-        {
-          method: 'PUT',
-          body: {
-            assignedTo: user.email ? user.email : `user:${user.id}`,
-          },
-        },
-      );
-      result.assigned = true;
-    } catch (e3) {
-      result.errors.push(
-        e3 instanceof Error
-          ? `Asignar: ${e3.message}`
-          : 'No se pudo asignar el issue',
-      );
-    }
-  }
-
-  try {
-    await postComment(apiBase, org, numericId, comment);
-    result.commented = true;
-  } catch (e) {
-    result.errors.push(
-      e instanceof Error
-        ? `Comentario: ${e.message}`
-        : 'No se pudo publicar el comentario',
-    );
-  }
-
-  if (!result.permalink) {
-    try {
-      const issue = await getIssue({ apiBase, org, issueId: numericId });
-      result.permalink = issue.permalink;
+      if (existing) {
+        return {
+          ok: true,
+          already: true,
+          permalink,
+          existingComment: existing,
+        };
+      }
     } catch {
-      // ignore
+      // Listing failed — still try to post; Sentry may also reject duplicates.
     }
-  }
 
-  return result;
+    try {
+      await postComment(apiBase, org, numericId, comment);
+      return {
+        ok: true,
+        permalink,
+      };
+    } catch (e) {
+      const msg = errorMessage(e, 'No se pudo publicar el comentario');
+      // Sentry refuses the same comment twice within an hour.
+      if (/same comment|duplicate|already/i.test(msg)) {
+        return {
+          ok: true,
+          already: true,
+          permalink,
+          error: msg,
+        };
+      }
+      return {
+        ok: false,
+        error: msg,
+        permalink,
+      };
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: errorMessage(e, 'No se pudo publicar el comentario'),
+    };
+  }
 }
 
 export async function handleSentryAction(
@@ -465,8 +682,16 @@ export async function handleSentryAction(
   switch (action) {
     case 'getIssue':
       return getIssue(payload);
-    case 'publish':
-      return publish(payload);
+    case 'getMe':
+      return getMe(payload);
+    case 'findComment':
+      return findComment(payload);
+    case 'resolve':
+      return resolveIssue(payload);
+    case 'assign':
+      return assignIssue(payload);
+    case 'comment':
+      return commentIssue(payload);
     case 'openOptions':
       await browser.runtime.openOptionsPage();
       return null;

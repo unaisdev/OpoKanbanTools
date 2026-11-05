@@ -64,24 +64,81 @@
   word-break: break-word;
 }
 
-.actionsPreview {
-  margin: 0 0 12px;
-  padding: 0;
-  list-style: none;
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 8px;
 }
 
-.actionsPreview li {
-  position: relative;
-  padding: 2px 0 2px 18px;
+.actionRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #d1d9e0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.actionOk {
+  border-color: #4ac26b66;
+  background: #dafbe133;
+}
+
+.actionError {
+  border-color: #ff818266;
+  background: #ffebe933;
+}
+
+.actionRunning {
+  border-color: #0969da66;
+  background: #ddf4ff33;
+}
+
+.actionBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.actionTitle {
+  font-weight: 600;
   font-size: 13px;
+  margin: 0 0 2px;
 }
 
-.actionsPreview li::before {
-  content: '✓';
-  position: absolute;
-  left: 0;
+.actionDesc {
+  font-size: 12px;
+  color: #59636e;
+  margin: 0 0 6px;
+}
+
+.actionAside {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.actionFeedbackOk,
+.actionFeedbackError {
+  font-size: 12px;
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.actionFeedbackOk {
   color: #1a7f37;
-  font-weight: 700;
+}
+
+.actionFeedbackError {
+  color: #d1242f;
+}
+
+.doneBtn {
+  background: #dafbe1;
+  border-color: #4ac26b66;
+  color: #1a7f37;
 }
 
 .fieldLabel {
@@ -93,7 +150,7 @@
 .textarea {
   display: block;
   width: 100%;
-  min-height: 72px;
+  min-height: 64px;
   padding: 8px 10px;
   border: 1px solid #d1d9e0;
   border-radius: 6px;
@@ -104,7 +161,39 @@
   color: inherit;
   box-sizing: border-box;
   resize: vertical;
-  margin-bottom: 16px;
+  margin-bottom: 0;
+}
+
+.textarea:disabled {
+  opacity: 0.7;
+  background: #f6f8fa;
+}
+
+.existingComment {
+  margin: 0 0 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+}
+
+.existingCommentMeta {
+  font-size: 11px;
+  font-weight: 600;
+  color: #59636e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 4px;
+}
+
+.existingCommentText {
+  margin: 0;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #1f2328;
 }
 
 .warn,
@@ -143,6 +232,13 @@
   margin-top: 8px;
 }
 
+.footer a.btn {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
 .btn {
   border: 1px solid #d1d9e0;
   background: #f6f8fa;
@@ -151,6 +247,7 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .btn:disabled {

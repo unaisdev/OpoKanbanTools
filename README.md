@@ -83,14 +83,14 @@ Port of the standalone **KanbanFlow → GitHub CI Build** extension into `src/to
 
 Config lives in the tool’s Options fields (`owner` / `repo` / `workflow` / offset). The GitHub token is the shared **Global credentials** secret.
 
-## Sentry Resolve tool
+## Sentry Actions tool
 
-Marks the linked Sentry issue as **resolved in next release**, assigns the token user, and posts a comment with the KanbanFlow task URL (`https://kanbanflow.com/t/{id}`).
+Per-action controls on the linked Sentry issue: **resolve in next release**, **assign** the token user, and **comment** with the KanbanFlow task URL (`https://kanbanflow.com/t/{id}`). Each action reports idle / running / success / already-done / error on its own.
 
 1. Paste a Sentry auth token under **Global credentials** (`event:read` + `event:write`, or admin)
-2. Enable **Sentry Resolve** in Options
+2. Enable **Sentry Actions** in Options
 3. Open a KanbanFlow task whose title/description contains a Sentry issue URL — the bubble appears in the side rail
-4. Confirm the issue details in the modal and click **Publicar**
+4. Run the actions you need from the modal (already-done states are detected on load)
 
 ## Adding another tool later
 

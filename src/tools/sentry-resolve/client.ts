@@ -1,4 +1,9 @@
-import type { SentryIssueDetails, SentryPublishResult } from './types';
+import type {
+  SentryActionResult,
+  SentryFindCommentResult,
+  SentryIssueDetails,
+  SentryMe,
+} from './types';
 
 type SentryResponse =
   | { ok: true; data: unknown }
@@ -20,19 +25,30 @@ async function call<T>(
   return response.data as T;
 }
 
-export const sentryApi = {
-  getIssue: (payload: {
-    apiBase: string;
-    org: string;
-    issueId: string;
-  }) => call<SentryIssueDetails>('getIssue', payload),
+type IssueRef = {
+  apiBase: string;
+  org: string;
+  issueId: string;
+};
 
-  publish: (payload: {
-    apiBase: string;
-    org: string;
-    issueId: string;
-    comment: string;
-  }) => call<SentryPublishResult>('publish', payload),
+export const sentryApi = {
+  getIssue: (payload: IssueRef) =>
+    call<SentryIssueDetails>('getIssue', payload),
+
+  getMe: (payload: { apiBase: string }) =>
+    call<SentryMe>('getMe', payload),
+
+  resolve: (payload: IssueRef) =>
+    call<SentryActionResult>('resolve', payload),
+
+  assign: (payload: IssueRef) =>
+    call<SentryActionResult>('assign', payload),
+
+  findComment: (payload: IssueRef & { needle: string }) =>
+    call<SentryFindCommentResult>('findComment', payload),
+
+  comment: (payload: IssueRef & { comment: string; needle?: string }) =>
+    call<SentryActionResult>('comment', payload),
 
   openOptions: () => call<null>('openOptions'),
 };
