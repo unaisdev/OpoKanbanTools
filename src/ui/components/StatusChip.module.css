@@ -9,6 +9,8 @@
   font-family: var(--okt-sans);
   font-size: 12px;
   line-height: 1.2;
+  width: max-content;
+  flex: 0 0 auto;
 }
 
 .chip[data-on] {

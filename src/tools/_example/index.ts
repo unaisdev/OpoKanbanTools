@@ -2,14 +2,14 @@ import { createElement } from 'react';
 import { registerTool } from '@/src/core/registry';
 import { ExampleModal } from './ExampleModal';
 
-const flaskIcon = `<svg class="okt-bubble__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.5L5.5 18a3 3 0 0 0 2.6 4.5h8a3 3 0 0 0 2.6-4.5L14 9.5V3"/><path d="M8.5 14h7"/></svg>`;
+const sparkIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="okt-bubble__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="m5.6 5.6 2.1 2.1"/><path d="m16.3 16.3 2.1 2.1"/><path d="m5.6 18.4 2.1-2.1"/><path d="m16.3 7.7 2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>`;
 
 registerTool({
   id: 'example',
   name: 'Example Tool',
   description:
     'Scaffold stub. Enable it in Options to see a bubble next to KanbanFlow tasks — and expand Configuration to preview tool settings UI.',
-  icon: flaskIcon,
+  icon: sparkIcon,
   defaultEnabled: false,
   usesGlobalSecrets: ['github'],
   settingsFields: [

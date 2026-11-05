@@ -118,7 +118,10 @@ function findTaskPanel(): HTMLElement | null {
     }
     for (const el of els) {
       if (!(el instanceof HTMLElement)) continue;
-      if (el.closest('.ui-datepicker')) continue;
+      // Never treat our own tool modal as the KanbanFlow task panel —
+      // it also uses role="dialog" and would steal the scrape root,
+      // making canShow() fail and removing bubbles while the modal is open.
+      if (isOktNode(el) || el.closest('.ui-datepicker')) continue;
       const rect = el.getBoundingClientRect();
       if (
         rect.width >= 280 &&
@@ -183,106 +186,38 @@ function findDeleteAnchor(container: HTMLElement): Element | null {
   return null;
 }
 
-const NATIVE_ACTION_WORDS = new Set([
-  ...ACTION_LABELS.add,
-  ...ACTION_LABELS.delete,
-  'move',
-  'mover',
-  'timer',
-  'temporizador',
-  'reports',
-  'informes',
-  'reportes',
-  'more',
-  'más',
-  'mas',
-]);
-
 function iconHtml(tool: ToolDefinition): string {
   if (typeof tool.icon === 'string') return tool.icon;
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="7"/></svg>`;
 }
 
-function findNativeTemplate(container: HTMLElement): HTMLElement | null {
-  for (const child of Array.from(container.children)) {
-    if (!(child instanceof HTMLElement) || isOktNode(child)) continue;
-    if (matchesLabel(child, ACTION_LABELS.delete)) continue;
-    if (!isVisible(child)) continue;
-    return child;
-  }
-  return null;
-}
+/**
+ * Prefer building a real KanbanFlow sidebar button (like the legacy KF CI Build
+ * extension). Cloning native "Add" keeps its person+ glyph when icon swap fails.
+ */
+function createNativeSidebarBubble(tool: ToolDefinition): HTMLElement | null {
+  const sidebar = document.querySelector('.taskDetails-sidebar-innerWrapper');
+  if (!sidebar) return null;
 
-function replaceNativeLabelText(root: HTMLElement, name: string): void {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes: Text[] = [];
-  let node: Node | null;
-  while ((node = walker.nextNode())) nodes.push(node as Text);
-
-  let replaced = false;
-  for (const textNode of nodes) {
-    const value = norm(textNode.textContent);
-    if (!NATIVE_ACTION_WORDS.has(value)) continue;
-    textNode.textContent = name;
-    replaced = true;
-  }
-
-  if (replaced) return;
-
-  // Fallback: deepest short text leaf (typical label chip)
-  let best: Text | null = null;
-  for (const textNode of nodes) {
-    const value = norm(textNode.textContent);
-    if (value.length < 2 || value.length > 18) continue;
-    best = textNode;
-  }
-  if (best) best.textContent = name;
-}
-
-function replaceNativeIcon(root: HTMLElement, tool: ToolDefinition): void {
-  const svg = root.querySelector('svg');
-  if (svg) {
-    const host = document.createElement('span');
-    host.innerHTML = iconHtml(tool);
-    const next = host.firstElementChild;
-    if (next) {
-      next.classList.add('okt-bubble__icon');
-      svg.replaceWith(next);
-    }
-    return;
-  }
-
-  const img = root.querySelector('img');
-  if (img) {
-    const host = document.createElement('span');
-    host.innerHTML = iconHtml(tool);
-    const next = host.firstElementChild;
-    if (next) {
-      next.classList.add('okt-bubble__icon');
-      img.replaceWith(next);
-    }
-  }
+  const wrap = document.createElement('div');
+  wrap.className = 'taskDetails-sidebar-buttonWrapper';
+  wrap.setAttribute(BUBBLE_ATTR, tool.id);
+  wrap.setAttribute(OKT_MARK, 'bubble');
+  wrap.title = tool.name;
+  wrap.innerHTML = `
+    <button type="button" class="taskDetails-sidebarButton okt-sidebarButton" title="${tool.name.replace(/"/g, '&quot;')}">${iconHtml(tool)}</button>
+    <div class="taskDetails-sidebar-label">${tool.name}</div>`;
+  return wrap;
 }
 
 function createBubbleButton(
   tool: ToolDefinition,
   nativeContainer?: HTMLElement | null,
 ): HTMLElement {
-  const template = nativeContainer ? findNativeTemplate(nativeContainer) : null;
-
-  if (template) {
-    const wrap = template.cloneNode(true) as HTMLElement;
-    wrap.setAttribute(BUBBLE_ATTR, tool.id);
-    wrap.setAttribute(OKT_MARK, 'bubble');
-    wrap.title = tool.name;
-    wrap.removeAttribute('id');
-    wrap.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'));
-    // Avoid inheriting native click handlers tied via id/href quirks
-    if (wrap instanceof HTMLAnchorElement) wrap.removeAttribute('href');
-
-    replaceNativeIcon(wrap, tool);
-    replaceNativeLabelText(wrap, tool.name);
-    return wrap;
+  // Native KanbanFlow sidebar: build a clean button with our SVG (no clone).
+  if (nativeContainer && nativeContainer.id !== RAIL_ID) {
+    const native = createNativeSidebarBubble(tool);
+    if (native) return native;
   }
 
   const wrap = document.createElement('div');
@@ -427,7 +362,9 @@ export function syncBubbles(settings: PublicSettings): void {
     console.info('[OpoKanbanTools] syncBubbles', JSON.parse(debug));
   }
 
-  const scrapeRoot = panel ?? document;
+  // Prefer the real task panel; never scrape from our own modal host.
+  const scrapeRoot =
+    panel && !isOktNode(panel) ? panel : document;
   const shown = toolsVisibleForTask(tools, settings, scrapeRoot);
 
   if (native) {

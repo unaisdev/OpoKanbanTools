@@ -2,10 +2,17 @@ import type { ParsedLinks, TaskContext } from '@/src/core/types';
 
 const GITHUB_PR_RE =
   /https?:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/pull\/(\d+)/gi;
+const GITHUB_TREE_RE =
+  /https?:\/\/github\.com\/[^/\s]+\/[^/\s]+\/(?:tree|commits)\/([A-Za-z0-9._/-]+)/gi;
 const SENTRY_ISSUE_RE =
   /https?:\/\/(?:[\w-]+\.)?sentry\.io\/(?:organizations\/)?([^/\s]+)\/(?:issues|projects)\/([^/\s?#]+)?/gi;
 const BRANCH_HINT_RE =
   /(?:branch|rama)\s*[:=]\s*[`"]?([A-Za-z0-9._/-]+)/gi;
+
+function pushUnique(list: string[], value: string) {
+  const cleaned = value.replace(/[),.;]+$/, '').replace(/\/$/, '');
+  if (cleaned && !list.includes(cleaned)) list.push(cleaned);
+}
 
 export function parseLinks(text: string): ParsedLinks {
   const links: ParsedLinks = { branchHints: [] };
@@ -34,7 +41,12 @@ export function parseLinks(text: string): ParsedLinks {
 
   let branchMatch: RegExpExecArray | null;
   while ((branchMatch = BRANCH_HINT_RE.exec(text)) !== null) {
-    if (branchMatch[1]) links.branchHints.push(branchMatch[1]);
+    if (branchMatch[1]) pushUnique(links.branchHints, branchMatch[1]);
+  }
+
+  let treeMatch: RegExpExecArray | null;
+  while ((treeMatch = GITHUB_TREE_RE.exec(text)) !== null) {
+    if (treeMatch[1]) pushUnique(links.branchHints, treeMatch[1]);
   }
 
   return links;

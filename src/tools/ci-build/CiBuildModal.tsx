@@ -33,6 +33,17 @@ function formatDuration(ms: number | null): string {
   return min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${min % 60} min`;
 }
 
+function matchesPrQuery(pr: PullRequestRef, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return (
+    pr.title.toLowerCase().includes(q) ||
+    pr.branch.toLowerCase().includes(q) ||
+    String(pr.number).includes(q) ||
+    `#${pr.number}`.includes(q)
+  );
+}
+
 function Badge({ run }: { run: WorkflowRun }) {
   const key = run.conclusion || run.status;
   const tone = !isActive(run)
@@ -60,6 +71,9 @@ export function CiBuildModal({
   const owner = String(config.owner ?? 'opositatest');
   const repo = String(config.repo ?? 'react-web-app');
   const missingToken = secretStatus?.github === false;
+  const githubPr = task.links.githubPr;
+  const branchHints = task.links.branchHints ?? [];
+  const branchHintsKey = branchHints.join('\0');
 
   const [view, setView] = useState<View>(missingToken ? 'form' : 'loading');
   const [prs, setPrs] = useState<PullRequestRef[]>([]);
@@ -70,7 +84,9 @@ export function CiBuildModal({
   );
   const [selection, setSelection] = useState(OTHER);
   const [otherBranch, setOtherBranch] = useState('');
-  const [branches, setBranches] = useState<string[]>([]);
+  const [openPrs, setOpenPrs] = useState<PullRequestRef[]>([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestIndex, setSuggestIndex] = useState(0);
   const [values, setValues] = useState<Record<string, string>>({});
   const [running, setRunning] = useState(false);
   const [runs, setRuns] = useState<WorkflowRun[]>([]);
@@ -91,8 +107,18 @@ export function CiBuildModal({
     selection === OTHER ? otherBranch : selection || ''
   ).trim();
 
+  const prSuggestions = openPrs
+    .filter((pr) => !pr.fromFork && matchesPrQuery(pr, otherBranch))
+    .slice(0, 12);
+
   const getRunUi = (id: number): RunUi =>
     runUi[id] ?? { cancelling: false, cancelRequested: false, cancelError: null };
+
+  function pickPrSuggestion(pr: PullRequestRef) {
+    setOtherBranch(pr.branch);
+    setSelection(OTHER);
+    setSuggestOpen(false);
+  }
 
   const mergeRun = useCallback((fresh: WorkflowRun) => {
     setRuns((prev) =>
@@ -137,6 +163,10 @@ export function CiBuildModal({
           ciBuildApi.findPullRequests({
             taskId: task.taskId,
             title: task.title,
+            prNumber: githubPr?.number ?? null,
+            prOwner: githubPr?.owner ?? null,
+            prRepo: githubPr?.repo ?? null,
+            branchHints,
           }),
           ciBuildApi.getWorkflowInputs(),
         ]);
@@ -148,7 +178,14 @@ export function CiBuildModal({
           nextPrs = prsResult.value;
           setPrs(nextPrs);
           const first = nextPrs.find((p) => !p.fromFork);
-          setSelection(first ? first.branch : OTHER);
+          if (first) {
+            setSelection(first.branch);
+          } else if (branchHints[0]) {
+            setSelection(OTHER);
+            setOtherBranch(branchHints[0]);
+          } else {
+            setSelection(OTHER);
+          }
         } else {
           const msg = prsResult.reason?.message || String(prsResult.reason);
           if (msg.includes('Falta el token')) {
@@ -157,6 +194,10 @@ export function CiBuildModal({
             return;
           }
           setPrError(msg);
+          if (branchHints[0]) {
+            setSelection(OTHER);
+            setOtherBranch(branchHints[0]);
+          }
         }
 
         let nextInputs: WorkflowInput[] = [];
@@ -190,9 +231,13 @@ export function CiBuildModal({
         setValues(nextValues);
 
         try {
+          const runBranches = [
+            ...nextPrs.filter((p) => !p.fromFork).map((p) => p.branch),
+            ...branchHints,
+          ];
           const nextRuns = await ciBuildApi.getTaskRuns({
             taskKey,
-            branches: nextPrs.filter((p) => !p.fromFork).map((p) => p.branch),
+            branches: runBranches,
           });
           if (cancelled) return;
           setRuns(nextRuns);
@@ -205,9 +250,14 @@ export function CiBuildModal({
           setView('form');
         }
 
-        void ciBuildApi.listBranches().then((list) => {
-          if (!cancelled) setBranches(list);
-        });
+        void ciBuildApi.listOpenPullRequests().then(
+          (list) => {
+            if (!cancelled) setOpenPrs(list);
+          },
+          () => {
+            /* autocomplete is best-effort */
+          },
+        );
       } catch (e) {
         if (cancelled) return;
         const msg = e instanceof Error ? e.message : String(e);
@@ -225,6 +275,10 @@ export function CiBuildModal({
     missingToken,
     task.taskId,
     task.title,
+    githubPr?.number,
+    githubPr?.owner,
+    githubPr?.repo,
+    branchHintsKey,
     taskKey,
     config.lastEnvironment,
     config.lastPlatform,
@@ -524,6 +578,18 @@ export function CiBuildModal({
                     ) : null}
                     <br />
                     <span className={styles.branch}>{pr.branch}</span>
+                    {pr.source === 'link' ? (
+                      <span className={styles.muted}>
+                        {' '}
+                        · enlace en la tarea
+                      </span>
+                    ) : null}
+                    {pr.source === 'branch' ? (
+                      <span className={styles.muted}>
+                        {' '}
+                        · rama en la tarea
+                      </span>
+                    ) : null}
                     {pr.source === 'title' ? (
                       <span className={styles.muted}>
                         {' '}
@@ -555,22 +621,75 @@ export function CiBuildModal({
                 onChange={() => setSelection(OTHER)}
               />
               <span style={{ flex: 1 }}>
-                Otra rama
-                <input
-                  type="text"
-                  className={styles.control}
-                  list="okt-ci-branches"
-                  placeholder="feat/app-…"
-                  value={otherBranch}
-                  style={{ marginTop: 6 }}
-                  onFocus={() => setSelection(OTHER)}
-                  onChange={(e) => setOtherBranch(e.target.value)}
-                />
-                <datalist id="okt-ci-branches">
-                  {branches.map((b) => (
-                    <option key={b} value={b} />
-                  ))}
-                </datalist>
+                Otra rama / buscar PR
+                <div className={styles.suggestWrap}>
+                  <input
+                    type="text"
+                    className={styles.control}
+                    placeholder="Título de PR, #número o rama…"
+                    value={otherBranch}
+                    autoComplete="off"
+                    onFocus={() => {
+                      setSelection(OTHER);
+                      setSuggestOpen(true);
+                      setSuggestIndex(0);
+                    }}
+                    onBlur={() => {
+                      window.setTimeout(() => setSuggestOpen(false), 150);
+                    }}
+                    onChange={(e) => {
+                      setOtherBranch(e.target.value);
+                      setSelection(OTHER);
+                      setSuggestOpen(true);
+                      setSuggestIndex(0);
+                    }}
+                    onKeyDown={(e) => {
+                      if (!suggestOpen || !prSuggestions.length) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setSuggestIndex((i) =>
+                          Math.min(i + 1, prSuggestions.length - 1),
+                        );
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setSuggestIndex((i) => Math.max(i - 1, 0));
+                      } else if (e.key === 'Enter') {
+                        const pick = prSuggestions[suggestIndex];
+                        if (pick) {
+                          e.preventDefault();
+                          pickPrSuggestion(pick);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setSuggestOpen(false);
+                      }
+                    }}
+                  />
+                  {suggestOpen && prSuggestions.length ? (
+                    <ul className={styles.suggestList} role="listbox">
+                      {prSuggestions.map((pr, i) => (
+                        <li key={pr.number}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={i === suggestIndex}
+                            className={`${styles.suggestItem}${i === suggestIndex ? ` ${styles.suggestItemActive}` : ''}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickPrSuggestion(pr)}
+                            onMouseEnter={() => setSuggestIndex(i)}
+                          >
+                            <span className={styles.suggestTitle}>
+                              #{pr.number} {pr.title}
+                              {pr.draft ? ' (draft)' : ''}
+                            </span>
+                            <span className={styles.suggestMeta}>
+                              {pr.branch}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
               </span>
             </label>
           </fieldset>

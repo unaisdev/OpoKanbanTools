@@ -1,14 +1,30 @@
 /* Injected into the page (not shadow) so bubbles sit beside the task dialog. */
 
-/* When we clone a native action item, only normalize the swapped SVG. */
+/* Native KanbanFlow sidebar button we inject (same pattern as KF CI Build). */
+.okt-sidebarButton {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.okt-sidebarButton svg.okt-bubble__icon,
+[data-okt='bubble'] svg.okt-bubble__icon {
+  width: 22px !important;
+  height: 22px !important;
+  display: block !important;
+  color: #444 !important;
+  pointer-events: none;
+}
+
+.okt-sidebarButton svg.okt-bubble__icon,
+.okt-sidebarButton svg.okt-bubble__icon *,
 [data-okt='bubble'] svg.okt-bubble__icon,
-[data-okt='bubble'] svg {
-  width: 1.15em;
-  height: 1.15em;
-  display: block;
-  color: inherit;
-  stroke: currentColor;
-  fill: none;
+[data-okt='bubble'] svg.okt-bubble__icon * {
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
 }
 
 /* Fallback bubble (fixed rail) — tuned to look like KanbanFlow actions */
@@ -38,11 +54,17 @@
   flex-shrink: 0;
 }
 
-.okt-bubble__btn svg {
-  width: 16px;
-  height: 16px;
-  display: block;
-  stroke: currentColor;
+.okt-bubble__btn svg.okt-bubble__icon {
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
+}
+
+.okt-bubble__btn svg.okt-bubble__icon,
+.okt-bubble__btn svg.okt-bubble__icon * {
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2 !important;
 }
 
 .okt-bubble__label {
@@ -110,9 +132,29 @@
 
 .okt-modal__title {
   margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 16px;
   font-weight: 650;
   letter-spacing: -0.01em;
+}
+
+.okt-modal__title-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  color: #1c1c1c;
+  flex-shrink: 0;
+}
+
+.okt-modal__title-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  display: block;
+  stroke: currentColor !important;
+  fill: none !important;
+  stroke-width: 2 !important;
 }
 
 .okt-modal__close {

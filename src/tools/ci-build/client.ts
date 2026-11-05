@@ -25,10 +25,18 @@ async function call<T>(
 }
 
 export const ciBuildApi = {
-  findPullRequests: (payload: { taskId: string | null; title: string }) =>
-    call<PullRequestRef[]>('findPullRequests', payload),
+  findPullRequests: (payload: {
+    taskId: string | null;
+    title: string;
+    prNumber?: number | null;
+    prOwner?: string | null;
+    prRepo?: string | null;
+    branchHints?: string[];
+  }) => call<PullRequestRef[]>('findPullRequests', payload),
 
   listBranches: () => call<string[]>('listBranches'),
+
+  listOpenPullRequests: () => call<PullRequestRef[]>('listOpenPullRequests'),
 
   checkBranch: (payload: { branch: string }) =>
     call<{ exists: boolean }>('checkBranch', payload),

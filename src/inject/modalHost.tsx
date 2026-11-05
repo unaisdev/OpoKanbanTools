@@ -21,6 +21,7 @@ function ensureHost(): HTMLDivElement {
   hostEl = document.createElement('div');
   hostEl.id = 'okt-modal-host';
   hostEl.className = 'okt-modal-root';
+  hostEl.setAttribute('data-okt', 'modal-host');
   document.body.appendChild(hostEl);
   root = createRoot(hostEl);
   return hostEl;
@@ -28,10 +29,12 @@ function ensureHost(): HTMLDivElement {
 
 function ModalShell({
   title,
+  iconHtml,
   onClose,
   children,
 }: {
   title: string;
+  iconHtml?: string;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -51,7 +54,16 @@ function ModalShell({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="okt-modal__header">
-          <h2 className="okt-modal__title">{title}</h2>
+          <h2 className="okt-modal__title">
+            {iconHtml ? (
+              <span
+                className="okt-modal__title-icon"
+                aria-hidden
+                dangerouslySetInnerHTML={{ __html: iconHtml }}
+              />
+            ) : null}
+            {title}
+          </h2>
           <button
             type="button"
             className="okt-modal__close"
@@ -82,7 +94,11 @@ export function openToolModal({
   ensureHost();
   const onClose = () => closeToolModal();
   root!.render(
-    <ModalShell title={tool.name} onClose={onClose}>
+    <ModalShell
+      title={tool.name}
+      iconHtml={typeof tool.icon === 'string' ? tool.icon : undefined}
+      onClose={onClose}
+    >
       {tool.renderModal({ task, config, onClose, secretStatus })}
     </ModalShell>,
   );

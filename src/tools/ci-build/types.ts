@@ -15,7 +15,7 @@ export type PullRequestRef = {
   draft: boolean;
   url: string;
   updatedAt: string;
-  source: 'id' | 'title';
+  source: 'id' | 'title' | 'link' | 'branch' | 'list';
 };
 
 export type WorkflowRun = {
@@ -49,9 +49,17 @@ export type CiBuildConfig = {
 export type CiBuildAction =
   | {
       action: 'findPullRequests';
-      payload: { taskId: string | null; title: string };
+      payload: {
+        taskId: string | null;
+        title: string;
+        prNumber?: number | null;
+        prOwner?: string | null;
+        prRepo?: string | null;
+        branchHints?: string[];
+      };
     }
   | { action: 'listBranches' }
+  | { action: 'listOpenPullRequests' }
   | { action: 'checkBranch'; payload: { branch: string } }
   | { action: 'getWorkflowInputs' }
   | {

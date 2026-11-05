@@ -48,7 +48,7 @@ export function Section({
               </span>
             </button>
           ) : (
-            <div>
+            <div className={styles.titleBlock}>
               <h2 className={styles.title}>{title}</h2>
               {description ? (
                 <p className={styles.description}>{description}</p>

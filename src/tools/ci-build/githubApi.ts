@@ -106,7 +106,10 @@ type GhPull = {
   base: { repo?: { full_name?: string } | null };
 };
 
-function toPr(pr: GhPull, source: 'id' | 'title'): PullRequestRef {
+function toPr(
+  pr: GhPull,
+  source: PullRequestRef['source'],
+): PullRequestRef {
   return {
     number: pr.number,
     title: pr.title,
@@ -122,14 +125,38 @@ function toPr(pr: GhPull, source: 'id' | 'title'): PullRequestRef {
 export async function findPullRequests({
   taskId,
   title,
+  prNumber,
+  prOwner,
+  prRepo,
+  branchHints = [],
 }: {
   taskId: string | null;
   title: string;
+  prNumber?: number | null;
+  prOwner?: string | null;
+  prRepo?: string | null;
+  branchHints?: string[];
 }): Promise<PullRequestRef[]> {
   const cfg = await getCiBuildConfig();
   const base = repoPath(cfg);
   const found = new Map<number, PullRequestRef>();
 
+  // 1) Explicit PR link in the KanbanFlow task description
+  const linkMatchesRepo =
+    !prOwner ||
+    !prRepo ||
+    (prOwner.toLowerCase() === cfg.owner.toLowerCase() &&
+      prRepo.toLowerCase() === cfg.repo.toLowerCase());
+  if (prNumber && linkMatchesRepo) {
+    try {
+      const pr = (await gh(`${base}/pulls/${prNumber}`)) as GhPull;
+      found.set(pr.number, toPr(pr, 'link'));
+    } catch (e) {
+      if (!(e instanceof GitHubError && e.status === 404)) throw e;
+    }
+  }
+
+  // 2) Open PRs that mention the KanbanFlow task id in the body
   if (taskId) {
     const needle = `kanbanflow.com/t/${taskId}`;
     for (let page = 1; page <= 3; page++) {
@@ -137,12 +164,28 @@ export async function findPullRequests({
         `${base}/pulls?state=open&per_page=100&sort=updated&direction=desc&page=${page}`,
       )) as GhPull[];
       for (const pr of prs) {
-        if (pr.body?.includes(needle)) found.set(pr.number, toPr(pr, 'id'));
+        if (pr.body?.includes(needle) && !found.has(pr.number)) {
+          found.set(pr.number, toPr(pr, 'id'));
+        }
       }
       if (prs.length < 100) break;
     }
   }
 
+  // 3) Open PRs whose head branch matches a hint from the task
+  if (branchHints.length) {
+    for (const branch of [...new Set(branchHints)].slice(0, 5)) {
+      const head = `${cfg.owner}:${branch}`;
+      const prs = (await gh(
+        `${base}/pulls?state=open&head=${encodeURIComponent(head)}&per_page=5`,
+      )) as GhPull[];
+      for (const pr of prs) {
+        if (!found.has(pr.number)) found.set(pr.number, toPr(pr, 'branch'));
+      }
+    }
+  }
+
+  // 4) Fallback: search open PRs by task title in body
   const cleanTitle = (title || '')
     .replace(/^\s*(\[[^\]]*\]\s*)+/, '')
     .replace(/"/g, '')
@@ -174,6 +217,21 @@ export async function listBranches(): Promise<string[]> {
     if (res.length < 100) break;
   }
   return branches;
+}
+
+/** Open PRs for branch/title autocomplete (newest first). */
+export async function listOpenPullRequests(): Promise<PullRequestRef[]> {
+  const cfg = await getCiBuildConfig();
+  const base = repoPath(cfg);
+  const out: PullRequestRef[] = [];
+  for (let page = 1; page <= 3; page++) {
+    const prs = (await gh(
+      `${base}/pulls?state=open&per_page=100&sort=updated&direction=desc&page=${page}`,
+    )) as GhPull[];
+    for (const pr of prs) out.push(toPr(pr, 'list'));
+    if (prs.length < 100) break;
+  }
+  return out;
 }
 
 export async function checkBranch({
@@ -597,9 +655,16 @@ export async function handleCiBuildAction(
       return findPullRequests({
         taskId: (payload.taskId as string | null) ?? null,
         title: String(payload.title ?? ''),
+        prNumber:
+          payload.prNumber != null ? Number(payload.prNumber) : null,
+        prOwner: (payload.prOwner as string | null | undefined) ?? null,
+        prRepo: (payload.prRepo as string | null | undefined) ?? null,
+        branchHints: (payload.branchHints as string[] | undefined) ?? [],
       });
     case 'listBranches':
       return listBranches();
+    case 'listOpenPullRequests':
+      return listOpenPullRequests();
     case 'checkBranch':
       return checkBranch({ branch: String(payload.branch ?? '') });
     case 'getWorkflowInputs':

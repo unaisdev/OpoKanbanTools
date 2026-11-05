@@ -77,7 +77,7 @@ registerTool({
 Port of the standalone **KanbanFlow → GitHub CI Build** extension into `src/tools/ci-build/`:
 
 - Bubble only when the task has the configured label (default `pr:app`)
-- Finds open PRs by KanbanFlow task id in the PR body (fallback: title search)
+- Resolves the branch from a GitHub PR link or `branch`/`rama` hint in the task, then falls back to KanbanFlow task id in the PR body / title search
 - Reads `workflow_dispatch` inputs from the workflow YAML (fallback defaults)
 - Dispatches App Testing Environments, tracks runs per task, cancel + build number copy
 
