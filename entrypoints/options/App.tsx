@@ -51,7 +51,10 @@ export default function App() {
   return (
     <div className="okt-page">
       <header className="okt-hero">
-        <p className="okt-kicker">KanbanFlow extension · Beta</p>
+        <div className="okt-hero__top">
+          <p className="okt-kicker">KanbanFlow extension · Beta</p>
+          <UpdateBanner />
+        </div>
         <h1 className="okt-brand">OpoKanbanTools</h1>
         <p className="okt-lede">
           Enable tools that appear as action bubbles beside an open task. Store
@@ -59,8 +62,6 @@ export default function App() {
           secrets to the page.
         </p>
       </header>
-
-      <UpdateBanner />
 
       <div className="okt-stack">
         <Section
@@ -80,46 +81,48 @@ export default function App() {
             </>
           }
         >
-          {SECRET_KEYS.map((key) => {
-            const meta = GLOBAL_SECRET_META[key];
-            return (
-              <TokenField
-                key={key}
-                label={meta.label}
-                hint={meta.hint}
-                howTo={meta.howTo}
-                createUrl={meta.createUrl}
-                createLabel={meta.createLabel}
-                placeholder={meta.placeholder}
-                configured={settings.secretStatus[key]}
-                disabled={busy}
-                onSave={async (value) => {
-                  setBusy(true);
-                  try {
-                    const next = await sendMessage({
-                      type: 'SET_SECRETS',
-                      secrets: { [key]: value },
-                    });
-                    setSettings(next);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-                onClear={async () => {
-                  setBusy(true);
-                  try {
-                    const next = await sendMessage({
-                      type: 'CLEAR_SECRET',
-                      key,
-                    });
-                    setSettings(next);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              />
-            );
-          })}
+          <div className="okt-credentials">
+            {SECRET_KEYS.map((key) => {
+              const meta = GLOBAL_SECRET_META[key];
+              return (
+                <TokenField
+                  key={key}
+                  label={meta.label}
+                  hint={meta.hint}
+                  howTo={meta.howTo}
+                  createUrl={meta.createUrl}
+                  createLabel={meta.createLabel}
+                  placeholder={meta.placeholder}
+                  configured={settings.secretStatus[key]}
+                  disabled={busy}
+                  onSave={async (value) => {
+                    setBusy(true);
+                    try {
+                      const next = await sendMessage({
+                        type: 'SET_SECRETS',
+                        secrets: { [key]: value },
+                      });
+                      setSettings(next);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  onClear={async () => {
+                    setBusy(true);
+                    try {
+                      const next = await sendMessage({
+                        type: 'CLEAR_SECRET',
+                        key,
+                      });
+                      setSettings(next);
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                />
+              );
+            })}
+          </div>
         </Section>
 
         <Section

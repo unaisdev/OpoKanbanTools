@@ -233,7 +233,7 @@ export function TokenField({
   return (
     <div className={styles.root}>
       <div className={styles.top}>
-        <div>
+        <div className={styles.topHead}>
           <div className={styles.labelRow}>
             <div className={styles.label}>{label}</div>
             {howTo ? (
@@ -248,18 +248,18 @@ export function TokenField({
               </button>
             ) : null}
           </div>
-          {hint ? <p className={styles.hint}>{hint}</p> : null}
-          {createUrl ? (
-            <p className={styles.createLink}>
-              <a href={createUrl} target="_blank" rel="noreferrer">
-                {createLabel || 'Abrir página para crear el token'}
-              </a>
-            </p>
-          ) : null}
+          <span className={styles.badge} data-on={configured || undefined}>
+            {configured ? 'Configured' : 'Not set'}
+          </span>
         </div>
-        <span className={styles.badge} data-on={configured || undefined}>
-          {configured ? 'Configured' : 'Not set'}
-        </span>
+        {hint ? <p className={styles.hint}>{hint}</p> : null}
+        {createUrl ? (
+          <p className={styles.createLink}>
+            <a href={createUrl} target="_blank" rel="noreferrer">
+              {createLabel || 'Abrir página para crear el token'}
+            </a>
+          </p>
+        ) : null}
       </div>
 
       {showInput ? (

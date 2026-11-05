@@ -2,7 +2,7 @@
 
 Chrome extension (Manifest V3) that adds custom **action bubbles** next to an open KanbanFlow task, backed by a plugin architecture and an options page for credentials and tool toggles.
 
-Ships the plugin architecture, admin panel, an **Example Tool** stub, and the **CI Build** tool (ported from KF CI Build) that dispatches GitHub Actions workflows from a KanbanFlow task.
+Ships the plugin architecture, admin panel, **CI Build** (GitHub Actions from a KanbanFlow task), and **Sentry Actions** (resolve / assign / comment from the task rail).
 
 ## Stack
 
@@ -28,8 +28,8 @@ GitHub also attaches **Source code (zip/tar.gz)** on every release if you need t
 2. Commit, then tag and push:
 
 ```bash
-git tag v0.0.1
-git push origin v0.0.1
+git tag v0.0.2
+git push origin v0.0.2
 ```
 
 3. `.github/workflows/release.yml` builds the zip, typechecks, and creates a GitHub Release  
@@ -63,7 +63,7 @@ pnpm dev
 3. **Load unpacked** → select `.output/chrome-mv3` (WXT prints the path on start)
 4. Open the extension **Options** (or click the toolbar icon)
 5. Paste a GitHub token under **Global credentials** (`actions:read` + `actions:write`)
-6. Enable **CI Build** (and optionally **Example Tool**)
+6. Enable **CI Build** and/or **Sentry Actions**
 7. Open a task with the `pr:app` label on [kanbanflow.com](https://kanbanflow.com) — the CI Build bubble should appear on the side rail
 
 ```bash
